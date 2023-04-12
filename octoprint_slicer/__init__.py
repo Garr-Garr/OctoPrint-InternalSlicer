@@ -45,7 +45,8 @@ import logging.handlers
 class SlicerPlugin(octoprint.plugin.SettingsPlugin,
                    octoprint.plugin.AssetPlugin,
                    octoprint.plugin.TemplatePlugin,
-				   octoprint.plugin.BlueprintPlugin):
+				   octoprint.plugin.BlueprintPlugin,
+				   octoprint.plugin.StartupPlugin):
 
 	##~~ SettingsPlugin mixin
 
@@ -54,15 +55,33 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 			# put your plugin's default settings here
 		)
 
+	def __init__(self):
+		# setup job tracking across threads
+		self._slicing_commands = dict()
+		self._slicing_commands_mutex = threading.Lock()
+		self._cancelled_jobs = []
+		self._cancelled_jobs_mutex = threading.Lock()
+
+	def on_startup(self, host, port):
+		self._slic3r_logger = self._logger
+		# setup our custom logger
+		slic3r_logging_handler = logging.handlers.RotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), maxBytes=2*1024*1024)
+		slic3r_logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+		slic3r_logging_handler.setLevel(logging.DEBUG)
+
+		self._slic3r_logger.addHandler(slic3r_logging_handler)
+		self._slic3r_logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
+		self._slic3r_logger.propagate = False
+
 	##~~ AssetPlugin mixin
 
 	def get_assets(self):
 		# Define your plugin's asset files to automatically include in the
 		# core UI here.
 		return dict(
-			js=["js/stats.min.js", "js/octoprint_slicer.min.js"],
-			css=["css/slicer.css"],
-			less=["less/slicer.less"]
+			js=["js/stats.min.js", "js/octoprint_slicer.min.js", "js/slic3r.js"],
+			css=["css/slicer.css", "css/slic3r.css"],
+			less=["less/slicer.less", "less/slic3r.less"]
 		)
 
 	##~~ Softwareupdate hook
@@ -73,7 +92,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		# for details.
 		return dict(
 			slicer=dict(
-				displayName="Slicer",
+				displayName="New Slicer",
 				displayVersion=self._plugin_version,
 
 				# version check: github repository
@@ -83,7 +102,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 				current=self._plugin_version,
 
 				# update method: pip
-				pip="https://github.com/kennethjiang/OctoPrint-Slicer/archive/{target_version}.zip"
+				pip="https://github.com/Garr-R/OctoPrint-Slicer/archive/{target_version}.zip"
 			)
 		)
 
