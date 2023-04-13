@@ -64,7 +64,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 
 	def get_settings_defaults(self):
 		return dict(
-			slic3r_engine=None,
+			slicer_engine=None,
 			default_profile=None,
 			debug_logging=False
 		)
@@ -77,22 +77,22 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		self._cancelled_jobs_mutex = threading.Lock()
 
 	def on_startup(self, host, port):
-		self._slic3r_logger = self._logger
+		self._slicer_logger = self._logger
 		# setup our custom logger
-		slic3r_logging_handler = logging.handlers.RotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), maxBytes=2*1024*1024)
-		slic3r_logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
-		slic3r_logging_handler.setLevel(logging.DEBUG)
+		slicer_logging_handler = logging.handlers.RotatingFileHandler(self._settings.get_plugin_logfile_path(postfix="engine"), maxBytes=2*1024*1024)
+		slicer_logging_handler.setFormatter(logging.Formatter("%(asctime)s %(message)s"))
+		slicer_logging_handler.setLevel(logging.DEBUG)
 
-		self._slic3r_logger.addHandler(slic3r_logging_handler)
-		self._slic3r_logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
-		self._slic3r_logger.propagate = False
+		self._slicer_logger.addHandler(slicer_logging_handler)
+		self._slicer_logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
+		self._slicer_logger.propagate = False
 
 
 
 
 	##~~ BlueprintPlugin API
 	@octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
-	def importSlic3rProfile(self):
+	def importSlicerProfile(self):
 		import datetime
 		import tempfile
 		input_name = "file"
@@ -102,7 +102,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		if input_upload_name in flask.request.values and input_upload_path in flask.request.values:
 			filename = flask.request.values[input_upload_name]
 			try:
-				profile_dict, imported_name, imported_description = Profile.from_slic3r_ini(flask.request.values[input_upload_path])
+				profile_dict, imported_name, imported_description = Profile.from_slicer_ini(flask.request.values[input_upload_path])
 			except Exception as e:
 				return flask.make_response("Something went wrong while converting imported profile: {message}".format(e.message), 500)
 
@@ -112,7 +112,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 				temp_file.close()
 				upload = flask.request.files[input_name]
 				upload.save(temp_file.name)
-				profile_dict, imported_name, imported_description = Profile.from_slic3r_ini(temp_file.name)
+				profile_dict, imported_name, imported_description = Profile.from_slicer_ini(temp_file.name)
 			except Exception as e:
 				return flask.make_response("Something went wrong while converting imported profile: {message}".format(e.message), 500)
 			finally:
@@ -125,7 +125,8 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		name, _ = os.path.splitext(filename)
 
 		# default values for name, display name and description
-		profile_name = _sanitize_name(name)
+		# profile_name = _sanitize_name(name)
+		profile_name = name
 		profile_display_name = imported_name if imported_name is not None else name
 		profile_description = imported_description if imported_description is not None else "Imported from {filename} on {date}".format(filename=filename, date=octoprint.util.get_formatted_datetime(datetime.datetime.now()))
 		profile_allow_overwrite = False
@@ -140,8 +141,13 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		if "allowOverwrite" in flask.request.values:
 			from octoprint.server.api import valid_boolean_trues
 			profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
-		
-		self._slicing_manager.save_profile("slic3r",
+
+		#OctoPrint returns the following error when I try to import a profile:
+		#File "/home/pi/oprint/lib/python3.7/site-packages/octoprint_slicer/__init__.py", line 150, in importSlicerProfile description=profile_description)
+  		#File "/home/pi/oprint/lib/python3.7/site-packages/octoprint/slicing/__init__.py", line 482, in save_profile raise UnknownSlicer(slicer)
+		#octoprint.slicing.exceptions.UnknownSlicer
+
+		self._slicing_manager.save_profile("slicer",
 										profile_name,
 										profile_dict,
 										allow_overwrite=profile_allow_overwrite,
@@ -149,7 +155,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 										description=profile_description)
 
 		result = dict(
-			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="slic3r", name=profile_name, _external=True),
+			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="slicer", name=profile_name, _external=True),
 			displayName=profile_display_name,
 			description=profile_description
 		)
@@ -165,9 +171,9 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		new_debug_logging = self._settings.get_boolean(["debug_logging"])
 		if old_debug_logging != new_debug_logging:
 			if new_debug_logging:
-				self._slic3r_logger.setLevel(logging.DEBUG)
+				self._slicer_logger.setLevel(logging.DEBUG)
 			else:
-				self._slic3r_logger.setLevel(logging.CRITICAL)
+				self._slicer_logger.setLevel(logging.CRITICAL)
 
 	##~~ AssetPlugin mixin
 
@@ -297,8 +303,8 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 			self.tempProfileName = "temp-" + str(uuid.uuid1())
 			if flask.request.values["Slicer Name"] == "cura" :
 				self.convertCuraToProfile(temp, self.tempProfileName, self.tempProfileName, '')
-			elif flask.request.values["Slicer Name"] == "slic3r" :
-				self.convertSlic3rToProfile(temp, '', '', '')
+			elif flask.request.values["Slicer Name"] == "slicer" :
+				self.convertSlicerToProfile(temp, '', '', '')
 
 			# Remove temporary file
 			os.remove(temp)
@@ -374,7 +380,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 					index += 1
 
 			# Otherwise check if slicer is Slic3r
-			elif flask.request.values["Slicer Name"] == "slic3r" :
+			elif flask.request.values["Slicer Name"] == "slicer" :
 
 				# Change printer profile
 				search = re.findall("bed_size\s*?=\s*?(\d+.?\d*)\s*?,\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
@@ -473,6 +479,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		output.close()
 
 	# Slic3r profile cleanup
+	#TODO: I don't think this is needed anymore, disabled for now (4/13/2023)
 	def slic3rProfileCleanUp(self, input, output) :
 
 		# Create output
@@ -511,7 +518,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 			profile_path = self._settings.get(["default_profile"])
 		if not machinecode_path:
 			path, _ = os.path.splitext(model_path)
-			machinecode_path = path + ".gco"
+			machinecode_path = path + ".gcode"
     
 		if position and isinstance(position, dict) and "x" in position and "y" in position:
 			posX = position["x"]
@@ -523,11 +530,11 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 			posX = printer_profile["volume"]["width"] / 2.0
 			posY = printer_profile["volume"]["depth"] / 2.0
     
-		self._slic3r_logger.info("### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
+		self._slicer_logger.info("### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
 
-		executable = normalize_path(self._settings.get(["slic3r_engine"]))
+		executable = normalize_path(self._settings.get(["slicer_engine"]))
 		if not executable:
-			return False, "Path to Slic3r is not configured "
+			return False, "Path to Slicer is not configured "
 
 		args = ['"%s"' % executable, '--load', '"%s"' % profile_path, '--print-center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
 		env = {}
@@ -548,13 +555,13 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 
 			if help_text.startswith(b'PrusaSlicer-2.3') or help_text.startswith(b'PrusaSlicer-2.4'):
 				args = ['"%s"' % executable, '-g --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-				env['SLIC3R_LOGLEVEL'] = "9"
-				self._logger.info("Running Prusa Slic3r >= 2.3")
+				env['SLICER_LOGLEVEL'] = "9"
+				self._logger.info("Running Prusa Slicer >= 2.3")
 			elif help_text.startswith(b'PrusaSlicer-2'):
 				args = ['"%s"' % executable, '--slice --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-				self._logger.info("Running Prusa Slic3r >= 2")
+				self._logger.info("Running Prusa Slicer >= 2")
 		except e:
-			self._logger.info("Error during Prusa Slic3r detection:" + str(e))
+			self._logger.info("Error during Prusa Slicer detection:" + str(e))
 
 		import sarge
 		working_dir, _ = os.path.split(executable)
@@ -589,7 +596,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 					stdout_buffer = stdout_lines[-1]
 					stdout_lines = stdout_lines[0:-1]
 					for stdout_line in stdout_lines:
-						self._slic3r_logger.debug("stdout: " + str(stdout_line))
+						self._slicer_logger.debug("stdout: " + str(stdout_line))
 						print(stdout_line.decode('utf-8'))
 						m = re.search(r"\[trace\].*layer ([0-9]+)", stdout_line.decode('utf-8'))
 						if m:
@@ -605,29 +612,29 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 					stderr_buffer = stderr_lines[-1]
 					stderr_lines = stderr_lines[0:-1]
 					for stderr_line in stderr_lines:
-						self._slic3r_logger.debug("stderr: " + str(stderr_line))
+						self._slicer_logger.debug("stderr: " + str(stderr_line))
 						if len(stderr_line.strip()) > 0:
 							last_error = stderr_line.strip()
 			finally:
 				if stdout_buffer:
 					stdout_lines = stdout_buffer.split(b'\n')
 					for stdout_line in stdout_lines:
-						self._slic3r_logger.debug("stdout: " + str(stdout_line))
+						self._slicer_logger.debug("stdout: " + str(stdout_line))
 
 				if stderr_buffer:
 					stderr_lines = stderr_buffer.split(b'\n')
 					for stderr_line in stderr_lines:
-						self._slic3r_logger.debug("stderr: " + str(stderr_line))
+						self._slicer_logger.debug("stderr: " + str(stderr_line))
 						if len(stderr_line.strip()) > 0:
 							last_error = stderr_line.strip()
 				p.close()
 
 				with self._cancelled_jobs_mutex:
 					if machinecode_path in self._cancelled_jobs:
-						self._slic3r_logger.info("### Cancelled")
+						self._slicer_logger.info("### Cancelled")
 						raise octoprint.slicing.SlicingCancelled()
 
-				self._slic3r_logger.info("### Finished, returncode %d" % p.returncode)
+				self._slicer_logger.info("### Finished, returncode %d" % p.returncode)
 				
 				#TODO: get analysis from gcode
 				#if p.returncode == 0:
@@ -644,7 +651,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		except octoprint.slicing.SlicingCancelled as e:
 			raise e
 		except:
-			self._logger.exception("Could not slice via Slic3r, got an unknown error")
+			self._logger.exception("Could not slice via Slicer, got an unknown error")
 			return False, "Unknown error, please consult the log file"
 
 		finally:
@@ -654,7 +661,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 			with self._slicing_commands_mutex:
 				if machinecode_path in self._slicing_commands:
 					del self._slicing_commands[machinecode_path]
-			self._slic3r_logger.info("-" * 40)
+			self._slicer_logger.info("-" * 40)
 
 
 
@@ -664,13 +671,13 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 
 
 	def is_slicer_configured(self):
-		slic3r_engine = normalize_path(self._settings.get(["slic3r_engine"]))
-		return slic3r_engine is not None and os.path.exists(slic3r_engine)
+		slicer_engine = normalize_path(self._settings.get(["slicer_engine"]))
+		return slicer_engine is not None and os.path.exists(slicer_engine)
 	
 	def get_slicer_properties(self):
 		return dict(
-			type="slic3r",
-			name="Slic3r",
+			type="slicer",
+			name="slicer",
 			same_device=True,
 			progress_report=False,
 		)
@@ -680,9 +687,6 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		if not path:
 			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default.profile.ini")
 		return self.get_slicer_profile(path)
-
-	def get_slicer_profile(self, path):
-		return self._load_profile(path)
 
 	def get_slicer_profile(self, path):
 		profile_dict, display_name, description = self._load_profile(path)
@@ -711,16 +715,17 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 				self._logger.info("Cancelled slicing of %s" % machinecode_path)
 
 	def _load_profile(self, path):
-		profile, display_name, description = Profile.from_slic3r_ini(path)
-		return octoprint.slicing.SlicingProfile("slic3r", os.path.splitext(os.path.basename(path))[0], profile, display_name, description)
+		profile, display_name, description = Profile.from_slicer_ini(path)
+		return octoprint.slicing.SlicingProfile("slicer", os.path.splitext(os.path.basename(path))[0], profile, display_name, description)
 		# alternatively use:
 		#return profile, display_name, description
 
 	def _save_profile(self, path, profile, allow_overwrite=True, display_name=None, description=None):
 		if not allow_overwrite and os.path.exists(path):
 			raise octoprint.slicing.SlicingProfileAlreadyExists("Profile already exists and allow_overwrite is False")
-		Profile.to_slic3r_ini(path, profile, display_name=display_name, description=description)
+		Profile.to_slicer_ini(path, profile, display_name=display_name, description=description)
 
+	#TODO: Re-enable this later
 	def _sanitize_name(name):
 		if name is None:
 			return None

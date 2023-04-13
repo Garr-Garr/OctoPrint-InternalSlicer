@@ -42,7 +42,7 @@ class Profile(object):
   regex_strip_comments = re.compile(";.*$", flags=re.MULTILINE)
 
   @classmethod
-  def from_slic3r_ini(cls, path):
+  def from_slicer_ini(cls, path):
     import os
     if not os.path.exists(path) or not os.path.isfile(path):
       return None
@@ -72,7 +72,7 @@ class Profile(object):
     return result, display_name, description
 
   @classmethod
-  def to_slic3r_ini(cls, profile, path, display_name=None, description=None):
+  def to_slicer_ini(cls, profile, path, display_name=None, description=None):
     with open(path, "w") as f:
       if display_name is not None:
         f.write("# Name: " + display_name + "\n")

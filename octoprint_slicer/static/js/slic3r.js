@@ -1,5 +1,5 @@
 $(function() {
-    function Slic3rViewModel(parameters) {
+    function SlicerViewModel(parameters) {
         var self = this;
 
         self.loginState = parameters[0];
@@ -26,8 +26,8 @@ $(function() {
         self.profileDescription = ko.observable();
         self.profileAllowOverwrite = ko.observable(true);
 
-        self.uploadElement = $("#settings-slic3r-import");
-        self.uploadButton = $("#settings-slic3r-import-start");
+        self.uploadElement = $("#settings-slicer-import");
+        self.uploadButton = $("#settings-slicer-import-start");
         self.uploadData = null;
         self.uploadButton.on("click", function() {
             if (self.uploadData) {
@@ -36,7 +36,7 @@ $(function() {
         });
 
         self.profiles = new ItemListHelper(
-            "plugin_slic3r_profiles",
+            "plugin_slicer_profiles",
             {
                 "id": function(a, b) {
                     if (a["key"].toLocaleLowerCase() < b["key"].toLocaleLowerCase()) return -1;
@@ -118,7 +118,7 @@ $(function() {
             done: function(e, data) {
                 self.clearUpload();
 
-                $("#settings_plugin_slic3r_import").modal("hide");
+                $("#settings_plugin_slicer_import").modal("hide");
                 self.requestData();
                 self.slicingViewModel.requestData();
             }
@@ -172,18 +172,18 @@ $(function() {
 
         self.showImportProfileDialog = function() {
             self.clearUpload();
-            $("#settings_plugin_slic3r_import").modal("show");
+            $("#settings_plugin_slicer_import").modal("show");
         };
 
         self.setAsDefaultSlicer = function() {
-            if (self.settings.slicing.defaultSlicer() != "slic3r") {
-                self.settings.slicing.defaultSlicer("slic3r");
+            if (self.settings.slicing.defaultSlicer() != "slicer") {
+                self.settings.slicing.defaultSlicer("slicer");
                 self.isDefaultSlicer("after_save");
             }
         };
 
         self.testEnginePath = function() {
-            OctoPrint.util.testExecutable(self.settings.plugins.slic3r.slic3r_engine())
+            OctoPrint.util.testExecutable(self.settings.plugins.slicer.slicer_engine())
                 .done(function(response) {
                     if (!response.result) {
                         if (!response.exists) {
@@ -203,7 +203,7 @@ $(function() {
 
         self.requestData = function() {
             $.ajax({
-                url: API_BASEURL + "slicing/slic3r/profiles",
+                url: API_BASEURL + "slicing/slicer/profiles",
                 type: "GET",
                 dataType: "json",
                 success: self.fromResponse
@@ -231,7 +231,7 @@ $(function() {
 
         self.onSettingsShown = function() {
             if ('slicing' in self.settings && 'defaultSlicer' in self.settings.slicing) {
-                self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "slic3r" ? "yes" : "no");
+                self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "slicer" ? "yes" : "no");
             } else {
                 self.isDefaultSlicer("unknown");
             }
@@ -250,5 +250,5 @@ $(function() {
     }
 
     // view model class, parameters for constructor, container to bind to
-    ADDITIONAL_VIEWMODELS.push([Slic3rViewModel, ["loginStateViewModel", "settingsViewModel", "slicingViewModel"], document.getElementById("settings_plugin_slic3r_dialog")]);
+    ADDITIONAL_VIEWMODELS.push([SlicerViewModel, ["loginStateViewModel", "settingsViewModel", "slicingViewModel"], document.getElementById("settings_plugin_slicer_dialog")]);
 });
