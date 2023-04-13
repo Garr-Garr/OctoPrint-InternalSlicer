@@ -54,8 +54,9 @@ from octoprint.util.paths import normalize as normalize_path
 from .profile import Profile
 
 
-class SlicerPlugin(octoprint.plugin.SettingsPlugin,
+class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
                    octoprint.plugin.AssetPlugin,
+		   		   octoprint.plugin.SlicerPlugin,
                    octoprint.plugin.TemplatePlugin,
 				   octoprint.plugin.BlueprintPlugin,
 				   octoprint.plugin.StartupPlugin):
@@ -142,11 +143,7 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 			from octoprint.server.api import valid_boolean_trues
 			profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
 
-		#OctoPrint returns the following error when I try to import a profile:
-		#File "/home/pi/oprint/lib/python3.7/site-packages/octoprint_slicer/__init__.py", line 150, in importSlicerProfile description=profile_description)
-  		#File "/home/pi/oprint/lib/python3.7/site-packages/octoprint/slicing/__init__.py", line 482, in save_profile raise UnknownSlicer(slicer)
-		#octoprint.slicing.exceptions.UnknownSlicer
-
+		# Save profile
 		self._slicing_manager.save_profile("slicer",
 										profile_name,
 										profile_dict,
@@ -481,30 +478,51 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 	# Slic3r profile cleanup
 	#TODO: I don't think this is needed anymore, disabled for now (4/13/2023)
 	def slic3rProfileCleanUp(self, input, output) :
-
 		# Create output
 		output = open(output, "wb")
 
 		# Go through all lines in input
 		for line in open(input) :
-
 			# Remove comments from input
 			if ';' in line and "_gcode" not in line and line[0] != '\t' :
 				output.write(line[0 : line.index(';')] + '\n')
 			else :
 				output.write(line)
-
 		# Close output
 		output.close()
 
+	def is_slicer_configured(self):
+		slicer_engine = normalize_path(self._settings.get(["slicer_engine"]))
+		return slicer_engine is not None and os.path.exists(slicer_engine)
+	
+	def get_slicer_properties(self):
+		return dict(
+			type="slicer",
+			name="slicer",
+			same_device=True,
+			progress_report=False,
+		)
 
+	def get_slicer_default_profile(self):
+		path = self._settings.get(["default_profile"])
+		if not path:
+			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default.profile.ini")
+		return self.get_slicer_profile(path)
 
+	def get_slicer_profile(self, path):
+		profile_dict, display_name, description = self._load_profile(path)
+		properties = self.get_slicer_properties()
+		return octoprint.slicing.SlicingProfile(properties["type"], "unknown", profile_dict, display_name=display_name, description=description)
+	
+	def save_slicer_profile(self, path, profile, allow_overwrite=True, overrides=None):
+		from octoprint.util import dict_merge
+		if overrides is not None:
+			new_profile = dict_merge(profile.data, overrides)
+		else:
+			new_profile = profile.data
+		self._save_profile(path, new_profile, allow_overwrite=allow_overwrite, display_name=profile.display_name, description=profile.description)
 
-
-
-
-
-
+	# Slicing process
 	def do_slice(self, model_path, printer_profile, machinecode_path=None, profile_path=None, position=None, on_progress=None, on_progress_args=None, on_progress_kwargs=None):
 		if on_progress is not None:
 			if on_progress_args is None:
@@ -536,7 +554,9 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 		if not executable:
 			return False, "Path to Slicer is not configured "
 
-		args = ['"%s"' % executable, '--load', '"%s"' % profile_path, '--print-center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
+		#This previously worked?
+		args = ['"%s"' % executable, '--export-gcode', '--center', '"%f,%f"' % (posX, posY), '--load', '"%s"' % profile_path,  '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
+
 		env = {}
     
 		try:
@@ -547,6 +567,8 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 			# help output includes a trace statement now on the first line. If we find it, use the second
 			# line instead
 			# [2022-04-22 21:44:51.396082] [0x75527010] [trace]   Initializing StaticPrintConfigs
+
+			# Actually, I think this needs to be set to the forth line instead
 			if help_text_all[0].find(b'trace') >= 0:
 				help_text = help_text_all[1]
 			else:
@@ -663,49 +685,6 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 					del self._slicing_commands[machinecode_path]
 			self._slicer_logger.info("-" * 40)
 
-
-
-
-
-
-
-
-	def is_slicer_configured(self):
-		slicer_engine = normalize_path(self._settings.get(["slicer_engine"]))
-		return slicer_engine is not None and os.path.exists(slicer_engine)
-	
-	def get_slicer_properties(self):
-		return dict(
-			type="slicer",
-			name="slicer",
-			same_device=True,
-			progress_report=False,
-		)
-
-	def get_slicer_default_profile(self):
-		path = self._settings.get(["default_profile"])
-		if not path:
-			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default.profile.ini")
-		return self.get_slicer_profile(path)
-
-	def get_slicer_profile(self, path):
-		profile_dict, display_name, description = self._load_profile(path)
-		properties = self.get_slicer_properties()
-		return octoprint.slicing.SlicingProfile(properties["type"], "unknown", profile_dict, display_name=display_name, description=description)
-	
-	def save_slicer_profile(self, path, profile, allow_overwrite=True, overrides=None):
-		from octoprint.util import dict_merge
-		if overrides is not None:
-			new_profile = dict_merge(profile.data, overrides)
-		else:
-			new_profile = profile.data
-		self._save_profile(path, new_profile, allow_overwrite=allow_overwrite, display_name=profile.display_name, description=profile.description)
-
-	
-
-
-
-
 	def cancel_slicing(self, machinecode_path):
 		with self._slicing_commands_mutex:
 			if machinecode_path in self._slicing_commands:
@@ -716,14 +695,12 @@ class SlicerPlugin(octoprint.plugin.SettingsPlugin,
 
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slicer_ini(path)
-		return octoprint.slicing.SlicingProfile("slicer", os.path.splitext(os.path.basename(path))[0], profile, display_name, description)
-		# alternatively use:
-		#return profile, display_name, description
+		return profile, display_name, description
 
 	def _save_profile(self, path, profile, allow_overwrite=True, display_name=None, description=None):
 		if not allow_overwrite and os.path.exists(path):
-			raise octoprint.slicing.SlicingProfileAlreadyExists("Profile already exists and allow_overwrite is False")
-		Profile.to_slicer_ini(path, profile, display_name=display_name, description=description)
+			raise IOError("Cannot overwrite {path}".format(path=path))
+		Profile.to_slicer_ini(profile, path, display_name=display_name, description=description)
 
 	#TODO: Re-enable this later
 	def _sanitize_name(name):
@@ -748,7 +725,7 @@ __plugin_pythoncompat__ = ">=2.7,<4"
 
 def __plugin_load__():
 	global __plugin_implementation__
-	__plugin_implementation__ = SlicerPlugin()
+	__plugin_implementation__ = NewSlicerPlugin()
 
 	global __plugin_hooks__
 	__plugin_hooks__ = {
