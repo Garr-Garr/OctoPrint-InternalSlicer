@@ -555,10 +555,13 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			return False, "Path to Slicer is not configured "
 
 		#This previously worked?
-		args = ['"%s"' % executable, '--export-gcode', '--center', '"%f,%f"' % (posX, posY), '--load', '"%s"' % profile_path,  '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
+		args = ['"%s"' % executable, '--export-gcode', '--load', '"%s"' % profile_path,   '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
+		# removing this for now, '--center', '"%f,%f"' % (posX, posY),
 
 		env = {}
-    
+		# this works in CLI
+    	#./prusa-slicer --export-gcode --load /home/pi/.octoprint/slicingProfiles/slicer/test_M2.profile -o /home/pi/ /home/pi/.octoprint/uploads/Vinyl.stl
+
 		try:
 			import subprocess
 			help_process = subprocess.Popen((executable, '--help'), stdout=subprocess.PIPE)
