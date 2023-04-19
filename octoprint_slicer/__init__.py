@@ -23,6 +23,7 @@ import sys
 import math
 import copy
 import flask
+import sarge
 import serial
 import serial.tools.list_ports
 import binascii
@@ -168,9 +169,9 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		new_debug_logging = self._settings.get_boolean(["debug_logging"])
 		if old_debug_logging != new_debug_logging:
 			if new_debug_logging:
-				self._slicer_logger.setLevel(logging.DEBUG)
+				self._logger.setLevel(logging.DEBUG)
 			else:
-				self._slicer_logger.setLevel(logging.CRITICAL)
+				self._logger.setLevel(logging.CRITICAL)
 
 	##~~ AssetPlugin mixin
 
@@ -532,11 +533,15 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			on_progress_kwargs["_progress"] = 0
 			on_progress(*on_progress_args, **on_progress_kwargs)
 
+		self._logger.info("testing profile path (default_profile): " + self._settings.get(["default_profile"]))
 		if not profile_path:
 			profile_path = self._settings.get(["default_profile"])
+		
+		self._logger.info("testing model_path: " + model_path)
 		if not machinecode_path:
 			path, _ = os.path.splitext(model_path)
 			machinecode_path = path + ".gcode"
+			self._logger.info("testing machinecode_path: " + machinecode_path)
     
 		if position and isinstance(position, dict) and "x" in position and "y" in position:
 			posX = position["x"]
@@ -548,13 +553,17 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			posX = printer_profile["volume"]["width"] / 2.0
 			posY = printer_profile["volume"]["depth"] / 2.0
     
-		self._slicer_logger.info("### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
+		self._logger.info("### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
+		
+		self._logger.info("testing 1")
 
 		executable = normalize_path(self._settings.get(["slicer_engine"]))
+		self._logger.info("testing 2 " + self._settings.get(["slicer_engine"]))
 		if not executable:
 			return False, "Path to Slicer is not configured "
 
 		#This previously worked?
+		self._logger.info("testing 3 " + executable)
 		args = ['"%s"' % executable, '--export-gcode', '--load', '"%s"' % profile_path,   '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
 		# removing this for now, '--center', '"%f,%f"' % (posX, posY),
 
@@ -564,8 +573,11 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 
 		try:
 			import subprocess
+			self._logger.info("testing 4")
 			help_process = subprocess.Popen((executable, '--help'), stdout=subprocess.PIPE)
+			self._logger.info("testing 5")
 			help_text_all = help_process.communicate()
+			self._logger.info("testing 6")
       
 			# help output includes a trace statement now on the first line. If we find it, use the second
 			# line instead
@@ -574,8 +586,10 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			# Actually, I think this needs to be set to the forth line instead
 			if help_text_all[0].find(b'trace') >= 0:
 				help_text = help_text_all[1]
+				self._logger.info("testing 7")
 			else:
 				help_text = help_text_all[0]
+				self._logger.info("testing 8")
 			self._logger.debug(help_text)
 
 			if help_text.startswith(b'PrusaSlicer-2.3') or help_text.startswith(b'PrusaSlicer-2.4'):
@@ -588,19 +602,28 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		except e:
 			self._logger.info("Error during Prusa Slicer detection:" + str(e))
 
-		import sarge
+		# moving to the top of the file
+		#import sarge
 		working_dir, _ = os.path.split(executable)
+		self._logger.info("testing 9" + working_dir)
 		command = " ".join(args)
+		self._logger.info("testing 10" + command)
 		self._logger.info("Running %r in %s" % (command, working_dir))
+		self._logger.info("testing 11")
 		
 		try:
 			if parse_version(sarge.__version__) >= parse_version('0.1.5'): # Because in version 0.1.5 the name was changed in sarge.
 				async_kwarg = 'async_'
+				self._logger.info("testing 12")
 			else:
 				async_kwarg = 'async'
+				self._logger.info("testing 13")
 			p = sarge.run(command, cwd=working_dir, stdout=sarge.Capture(buffer_size=1), stderr=sarge.Capture(buffer_size=1), env=env, **{async_kwarg: True})
+			self._logger.info("testing 14")
 			p.wait_events()
+			self._logger.info("testing 15")
 			last_error=""
+			self._logger.info("testing 16")
 			
 			try:
 				with self._slicing_commands_mutex:
@@ -621,7 +644,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 					stdout_buffer = stdout_lines[-1]
 					stdout_lines = stdout_lines[0:-1]
 					for stdout_line in stdout_lines:
-						self._slicer_logger.debug("stdout: " + str(stdout_line))
+						self._logger.debug("stdout: " + str(stdout_line))
 						print(stdout_line.decode('utf-8'))
 						m = re.search(r"\[trace\].*layer ([0-9]+)", stdout_line.decode('utf-8'))
 						if m:
@@ -637,29 +660,29 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 					stderr_buffer = stderr_lines[-1]
 					stderr_lines = stderr_lines[0:-1]
 					for stderr_line in stderr_lines:
-						self._slicer_logger.debug("stderr: " + str(stderr_line))
+						self._logger.debug("stderr: " + str(stderr_line))
 						if len(stderr_line.strip()) > 0:
 							last_error = stderr_line.strip()
 			finally:
 				if stdout_buffer:
 					stdout_lines = stdout_buffer.split(b'\n')
 					for stdout_line in stdout_lines:
-						self._slicer_logger.debug("stdout: " + str(stdout_line))
+						self._logger.debug("stdout: " + str(stdout_line))
 
 				if stderr_buffer:
 					stderr_lines = stderr_buffer.split(b'\n')
 					for stderr_line in stderr_lines:
-						self._slicer_logger.debug("stderr: " + str(stderr_line))
+						self._logger.debug("stderr: " + str(stderr_line))
 						if len(stderr_line.strip()) > 0:
 							last_error = stderr_line.strip()
 				p.close()
 
 				with self._cancelled_jobs_mutex:
 					if machinecode_path in self._cancelled_jobs:
-						self._slicer_logger.info("### Cancelled")
+						self._logger.info("### Cancelled")
 						raise octoprint.slicing.SlicingCancelled()
 
-				self._slicer_logger.info("### Finished, returncode %d" % p.returncode)
+				self._logger.info("### Finished, returncode %d" % p.returncode)
 				
 				#TODO: get analysis from gcode
 				#if p.returncode == 0:
@@ -686,7 +709,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			with self._slicing_commands_mutex:
 				if machinecode_path in self._slicing_commands:
 					del self._slicing_commands[machinecode_path]
-			self._slicer_logger.info("-" * 40)
+			self._logger.info("-" * 40)
 
 	def cancel_slicing(self, machinecode_path):
 		with self._slicing_commands_mutex:

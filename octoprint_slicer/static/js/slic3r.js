@@ -34,7 +34,8 @@ $(function() {
                 self.uploadData.submit();
             }
         });
-
+        
+        // Settings menu profile list
         self.profiles = new ItemListHelper(
             "plugin_slicer_profiles",
             {
@@ -82,6 +83,7 @@ $(function() {
             self.uploadData = null;
         };
 
+        // Uploading profiles
         self.uploadElement.fileupload({
             dataType: "json",
             maxNumberOfFiles: 1,
