@@ -507,7 +507,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 	def get_slicer_default_profile(self):
 		path = self._settings.get(["default_profile"])
 		if not path:
-			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default.profile.ini")
+			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "test_M2.ini")
 		return self.get_slicer_profile(path)
 
 	def get_slicer_profile(self, path):
