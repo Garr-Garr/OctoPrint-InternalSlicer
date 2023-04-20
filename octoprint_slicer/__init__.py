@@ -23,7 +23,7 @@ import sys
 import math
 import copy
 import flask
-import sarge
+#import sarge
 import serial
 import serial.tools.list_ports
 import binascii
@@ -571,39 +571,39 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		# this works in CLI
     	#./prusa-slicer --export-gcode --load /home/pi/.octoprint/slicingProfiles/slicer/test_M2.profile -o /home/pi/ /home/pi/.octoprint/uploads/Vinyl.stl
 
-		try:
-			import subprocess
-			self._logger.info("testing 4")
-			help_process = subprocess.Popen((executable, '--help'), stdout=subprocess.PIPE)
-			self._logger.info("testing 5")
-			help_text_all = help_process.communicate()
-			self._logger.info("testing 6")
+		#try:
+			#import subprocess
+			#self._logger.info("testing 4")
+			#help_process = subprocess.Popen((executable, '--help'), stdout=subprocess.PIPE)
+			#self._logger.info("testing 5")
+			#help_text_all = help_process.communicate()
+			#self._logger.info("testing 6")
       
 			# help output includes a trace statement now on the first line. If we find it, use the second
 			# line instead
 			# [2022-04-22 21:44:51.396082] [0x75527010] [trace]   Initializing StaticPrintConfigs
 
 			# Actually, I think this needs to be set to the forth line instead
-			if help_text_all[0].find(b'trace') >= 0:
-				help_text = help_text_all[1]
-				self._logger.info("testing 7")
-			else:
-				help_text = help_text_all[0]
-				self._logger.info("testing 8")
-			self._logger.debug(help_text)
+			#if help_text_all[0].find(b'trace') >= 0:
+				#help_text = help_text_all[1]
+				#self._logger.info("testing 7")
+			#else:
+				#help_text = help_text_all[0]
+				#self._logger.info("testing 8")
+			#self._logger.debug("Help_text:" + help_text)
 
-			if help_text.startswith(b'PrusaSlicer-2.3') or help_text.startswith(b'PrusaSlicer-2.4'):
-				args = ['"%s"' % executable, '-g --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-				env['SLICER_LOGLEVEL'] = "9"
-				self._logger.info("Running Prusa Slicer >= 2.3")
-			elif help_text.startswith(b'PrusaSlicer-2'):
-				args = ['"%s"' % executable, '--slice --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-				self._logger.info("Running Prusa Slicer >= 2")
-		except e:
-			self._logger.info("Error during Prusa Slicer detection:" + str(e))
+			#if help_text.startswith(b'PrusaSlicer-2.3') or help_text.startswith(b'PrusaSlicer-2.4'):
+				#args = ['"%s"' % executable, '-g --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
+				#env['SLICER_LOGLEVEL'] = "9"
+				#self._logger.info("Running Prusa Slicer >= 2.3")
+			#elif help_text.startswith(b'PrusaSlicer-2'):
+				#args = ['"%s"' % executable, '--slice --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
+				#self._logger.info("Running Prusa Slicer >= 2")
+		#except e:
+			#self._logger.info("Error during Prusa Slicer detection:" + str(e))
 
-		# moving to the top of the file
-		#import sarge
+		# (reverting change) moving import to the top of the file
+		import sarge
 		working_dir, _ = os.path.split(executable)
 		self._logger.info("testing 9" + working_dir)
 		command = " ".join(args)
