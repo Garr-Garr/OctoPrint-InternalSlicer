@@ -323,7 +323,7 @@ function SlicerViewModel(parameters) {
         if (!some(destinationExtensions, function(extension) {
             return endsWith(destinationFilename.toLowerCase(), "." + extension.toLowerCase());
         })) {
-            destinationFilename = destinationFilename + "." + destinationExtensions[0];
+            destinationFilename = destinationFilename + ".gcode";
         }
         if (!groupCenter) {
             groupCenter = new THREE.Vector3(0,0,0);
