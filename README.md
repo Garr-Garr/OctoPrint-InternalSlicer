@@ -1,6 +1,11 @@
-*Note: This project is no longer maintained. The latest Cura versions have excellent support to directly slice and send gcode to OctoPrint, and hence render this plugin largely obsolete.*
+*Note: This project is a work in progress and doesn't exactly work at the moment. 
 
-*If you are interested in taking over the ownership of this plugin, please PM me.*
+I'm working on combining the (now abandoned) [OctoPrint-Slicer plugin](https://github.com/OctoPrint/OctoPrint-Slic3r) with the [OctoPrint-Slic3r plugin](https://github.com/OctoPrint/OctoPrint-Slic3r), and make everything compatible with the latest version of PrusaSlicer. My end-goal is to have built-in support for any existing PrusaSlicer vendor profile from the web interface, but I'm starting and testing with MakerGear printers since I only have access to those
+
+*Currently only [PrusaSlicer ~v2.4.2 works](https://github.com/prusa3d/PrusaSlicer/releases/tag/version_2.4.2), but not v2.5+, and you have to manually download either the AppImage or the 'linux-armv7l-GTK2.tar.bz2' file. 
+
+## Thank you to [Kenneth Jiang](https://github.com/kennethjiang/), [Foosel](https://github.com/foosel), [Eyal](https://github.com/eyal0), and many many others for building the original plugins and the OctoPrint Mixins! 
+I'm standing on the shoulders of giants and doubt I would've been able to start this project without the exsisting code and infrastructure. 
 
 # OctoPrint Slicer
 
