@@ -197,7 +197,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 
 				# version check: github repository
 				type="github_release",
-				user="kennethjiang",
+				user="Garr-R",
 				repo="OctoPrint-Slicer",
 				current=self._plugin_version,
 

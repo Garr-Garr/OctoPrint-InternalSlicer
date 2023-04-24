@@ -21,13 +21,13 @@ plugin_version = "2.0.0"
 plugin_description = """A full-blown GUI-based slicer. Rotate and scale model; set layer height and other critical parameters."""
 
 # The plugin's author. Can be overwritten within OctoPrint's internal data via __plugin_author__ in the plugin module
-plugin_author = "Kenneth Jiang"
+plugin_author = "Garrett Broters, previously Kenneth Jiang"
 
 # The plugin's author's mail address.
-plugin_author_email = "kenneth.jiang@gmail.com"
+plugin_author_email = "gbroters@gmail.com"
 
 # The plugin's homepage URL. Can be overwritten within OctoPrint's internal data via __plugin_url__ in the plugin module
-plugin_url = "https://github.com/kennethjiang/OctoPrint-Slicer"
+plugin_url = "https://github.com/Garr-R/OctoPrint-Slicer"
 
 # The plugin's license. Can be overwritten within OctoPrint's internal data via __plugin_license__ in the plugin module
 plugin_license = "AGPLv3"
