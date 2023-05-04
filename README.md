@@ -1,6 +1,6 @@
 *Note: This project is a work in progress and doesn't exactly work at the moment. 
 
-I'm working on combining the (now abandoned) [OctoPrint-Slicer plugin](https://github.com/OctoPrint/OctoPrint-Slic3r) with the [OctoPrint-Slic3r plugin](https://github.com/OctoPrint/OctoPrint-Slic3r), and make everything compatible with the latest version of PrusaSlicer. My end-goal is to have built-in support for any existing PrusaSlicer vendor profile from the web interface, but I'm starting and testing with MakerGear printers since I only have access to those
+I'm working on combining the (now abandoned) [OctoPrint-Slicer plugin](https://github.com/OctoPrint/OctoPrint-Slic3r) with the [OctoPrint-Slic3r plugin](https://github.com/OctoPrint/OctoPrint-Slic3r), and make everything compatible with the latest version of PrusaSlicer*. My end-goal is to have built-in support for any existing PrusaSlicer vendor profile from the web interface, but I'm starting and testing with MakerGear printers since I only have access to those
 
 *Currently only [PrusaSlicer ~v2.4.2 works](https://github.com/prusa3d/PrusaSlicer/releases/tag/version_2.4.2), but not v2.5+, and you have to manually download either the AppImage or the 'linux-armv7l-GTK2.tar.bz2' file. 
 
