@@ -9,7 +9,6 @@ from __future__ import absolute_import
 #
 # Take a look at the documentation on what other plugin mixins are available.
 
-import octoprint.plugin
 
 from .vector import Vector
 
@@ -23,7 +22,6 @@ import sys
 import math
 import copy
 import flask
-#import sarge
 import serial
 import serial.tools.list_ports
 import binascii
@@ -40,6 +38,7 @@ import psutil
 import socket
 import threading
 import yaml
+import requests
 import logging
 import logging.handlers
 from collections import defaultdict
@@ -51,16 +50,18 @@ import octoprint.slicing
 import octoprint.settings
 
 from octoprint.util.paths import normalize as normalize_path
+from octoprint.events import Events
 
 from .profile import Profile
-
 
 class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
                    octoprint.plugin.AssetPlugin,
 		   		   octoprint.plugin.SlicerPlugin,
                    octoprint.plugin.TemplatePlugin,
+		   		   octoprint.plugin.SimpleApiPlugin,
 				   octoprint.plugin.BlueprintPlugin,
-				   octoprint.plugin.StartupPlugin):
+				   octoprint.plugin.StartupPlugin,
+				   octoprint.plugin.EventHandlerPlugin):
 
 	##~~ SettingsPlugin mixin
 
@@ -89,8 +90,29 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		self._slicer_logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
 		self._slicer_logger.propagate = False
 
+	def download_prusaslicer(self):
+		self._logger.info("Starting PrusaSlicer v2.4.2 download")
+		
+		# this works when I ask JS to console.log it
+		self._plugin_manager.send_plugin_message("slicer",  dict(commandResponse = "testing output 1"))
+		self._plugin_manager.send_plugin_message("slicer", dict(commandResponse = "testing output 2"))
 
+		# Get the path to the shell script
+		script_path = "/home/pi/.octoprint/scripts/downloadPrusaSlicer.sh"
 
+		# Create a subprocess object
+		proc = subprocess.Popen(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+		for line in proc.stdout:
+			self._logger.info(line)
+			self._plugin_manager.send_plugin_message("slicer", dict(commandResponse = line))
+
+	def get_api_commands(self):
+		return dict(test_download_prusaslicer=[])
+
+	def on_api_command(self, command, data):
+		if command == 'test_download_prusaslicer':
+			self.download_prusaslicer()
 
 	##~~ BlueprintPlugin API
 	@octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
@@ -161,7 +183,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		r.headers["Location"] = result["resource"]
 		return r
 
-
 	def on_settings_save(self, data):
 		old_debug_logging = self._settings.get_boolean(["debug_logging"])
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
@@ -205,9 +226,29 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 				pip="https://github.com/Garr-R/OctoPrint-Slicer/archive/{target_version}.zip"
 			)
 		)
+	
+	# Copy PrusaSlicer download script to scripts folder on startup
+	# TODO: use hashlib to compare files and only copy if different
+	def on_after_startup(self):
+		src_files = os.listdir(self._basefolder+"/static/scripts")
+		src = (self._basefolder+"/static/scripts")
+		dest = ("/home/pi/.octoprint/scripts")
+
+		for file_name in src_files:
+			full_src_name = os.path.join(src, file_name)
+			full_dest_name = os.path.join(dest, file_name)
+			if not (os.path.isfile(full_dest_name)):
+				shutil.copy(full_src_name, dest)
+				os.chmod(full_dest_name, 0o755)
+				self._logger.info("Had to copy "+file_name+" to scripts folder.")
+			else:
+				if not self.hashMatches(full_src_name, full_dest_name):
+					shutil.copy(full_src_name, dest)
+					self._logger.info("Had to overwrite {} with new version.".format(file_name))
+					os.chmod(full_dest_name, 0o755)
 
 	# Event monitor
-	def on_event(self, event, payload) :
+	def on_event(self, event, payload):
 
 		# check if event is slicing started
 		if event == octoprint.events.Events.SLICING_STARTED :
@@ -299,9 +340,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			output.close()
 
 			self.tempProfileName = "temp-" + str(uuid.uuid1())
-			if flask.request.values["Slicer Name"] == "cura" :
-				self.convertCuraToProfile(temp, self.tempProfileName, self.tempProfileName, '')
-			elif flask.request.values["Slicer Name"] == "slicer" :
+			if flask.request.values["Slicer Name"] == "slicer" :
 				self.convertSlicerToProfile(temp, '', '', '')
 
 			# Remove temporary file
@@ -315,70 +354,8 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 				"Printer Profile Content": copy.deepcopy(printerProfile)
 			}
 
-			# Check if slicer is Cura
-			if flask.request.values["Slicer Name"] == "cura" :
-
-				# Change printer profile
-				search = re.findall("extruder_amount\s*?=\s*?(\d+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["extruder"]["count"] = int(search[0])
-
-				search = re.findall("has_heated_bed\s*?=\s*?(\S+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					if str(search[0]).lower() == "true" :
-						printerProfile["heatedBed"] = True
-					else :
-						printerProfile["heatedBed"] = False
-
-				search = re.findall("machine_width\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["volume"]["width"] = float(search[0])
-
-				search = re.findall("machine_height\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["volume"]["height"] = float(search[0])
-
-				search = re.findall("machine_depth\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["volume"]["depth"] = float(search[0])
-
-				search = re.findall("machine_shape\s*?=\s*?(\S+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					if str(search[0]).lower() == "circular" :
-						printerProfile["volume"]["formFactor"] = "circular"
-					else :
-						printerProfile["volume"]["formFactor"] = "rectangular"
-
-				search = re.findall("nozzle_size\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["extruder"]["nozzleDiameter"] = float(search[0])
-
-				search = re.findall("machine_center_is_zero\s*?=\s*?(\S+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					if str(search[0]).lower() == "true" :
-						printerProfile["volume"]["formFactor"] = "circular"
-						printerProfile["volume"]["origin"] = "center"
-					else :
-						printerProfile["volume"]["formFactor"] = "rectangular"
-						printerProfile["volume"]["origin"] = "lowerleft"
-
-				search = re.findall("extruder_offset_(x|y)(\d)\s*?=\s*?(-?\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				vectors = [Vector(0, 0)] * printerProfile["extruder"]["count"]
-
-				for offset in search :
-					if offset[0] == 'x' :
-						vectors[int(offset[1]) - 1].x = float(offset[2])
-					else :
-						vectors[int(offset[1]) - 1].y = float(offset[2])
-
-				index = 0
-				while index < len(vectors) :
-					value = (vectors[index].x, vectors[index].y)
-					printerProfile["extruder"]["offsets"][index] = value
-					index += 1
-
 			# Otherwise check if slicer is Slic3r
-			elif flask.request.values["Slicer Name"] == "slicer" :
+			if flask.request.values["Slicer Name"] == "slicer" :
 
 				# Change printer profile
 				search = re.findall("bed_size\s*?=\s*?(\d+.?\d*)\s*?,\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
@@ -429,53 +406,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		# Return error
 		return flask.jsonify(dict(value = "Error"))
 
-	def __call__(self, *callback_args, **callback_kwargs):
-		self._slicing_manager.delete_profile("cura", self.tempProfileName)
-
-	def convertCuraToProfile(self, input, name, displayName, description) :
-
-		# Cura Engine plugin doesn't support solidarea_speed, perimeter_before_infill, raft_airgap_all, raft_surface_thickness, raft_surface_linewidth, plugin_config, object_center_x, and object_center_y
-
-		# Clean up input
-		fd, curaProfile = tempfile.mkstemp()
-		os.close(fd)
-		self.curaProfileCleanUp(input, curaProfile)
-
-		# Import profile manager
-		profileManager = imp.load_source("Profile", self._slicing_manager.get_slicer("cura")._basefolder.replace('\\', '/') + "/profile.py")
-
-		# Create profile
-		profile = octoprint.slicing.SlicingProfile("cura", name, profileManager.Profile.from_cura_ini(curaProfile), displayName, description)
-
-		# Remove temporary file
-		os.remove(curaProfile)
-
-		# Save profile
-		return self._slicing_manager.save_profile("cura", name, profile, None, True, displayName, description)
-
-	# Cura profile cleanup
-	def curaProfileCleanUp(self, input, output) :
-
-		# Create output
-		output = open(output, "wb")
-
-		# Go through all lines in input
-		for line in open(input) :
-
-			# Fix G-code lines
-			match = re.findall("^(.+)(\d+)\.gcode", line)
-			if len(match) :
-				line = match[0][0] + ".gcode" + match[0][1] + line[len(match[0][0]) + len(match[0][1]) + 6 :]
-
-			# Remove comments from input
-			if ';' in line and ".gcode" not in line and line[0] != '\t' :
-				output.write(line[0 : line.index(';')] + '\n')
-			else :
-				output.write(line)
-
-		# Close output
-		output.close()
-
 	# Slic3r profile cleanup
 	#TODO: I don't think this is needed anymore, disabled for now (4/13/2023)
 	def slic3rProfileCleanUp(self, input, output) :
@@ -521,6 +451,9 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			new_profile = dict_merge(profile.data, overrides)
 		else:
 			new_profile = profile.data
+		if self._settings.get(["default_profile"]) is None:
+			self._settings.set(["default_profile"], path)
+			self._settings.save()
 		self._save_profile(path, new_profile, allow_overwrite=allow_overwrite, display_name=profile.display_name, description=profile.description)
 
 	# Slicing process
@@ -554,7 +487,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			posY = printer_profile["volume"]["depth"] / 2.0
     
 		self._logger.info("### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
-		
 		self._logger.info("testing 1")
 
 		executable = normalize_path(self._settings.get(["slicer_engine"]))
@@ -562,10 +494,8 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		if not executable:
 			return False, "Path to Slicer is not configured "
 
-		#This previously worked?
 		self._logger.info("testing 3 " + executable)
 		args = ['"%s"' % executable, '--export-gcode', '--load', '"%s"' % profile_path,   '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-		# removing this for now, '--center', '"%f,%f"' % (posX, posY),
 
 		env = {}
 		# this works in CLI
@@ -727,6 +657,8 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		if not allow_overwrite and os.path.exists(path):
 			raise IOError("Cannot overwrite {path}".format(path=path))
 		Profile.to_slicer_ini(profile, path, display_name=display_name, description=description)
+
+
 
 	#TODO: Re-enable this later
 	def _sanitize_name(name):

@@ -6,6 +6,14 @@ $(function() {
         self.settingsViewModel = parameters[1];
         self.slicingViewModel = parameters[2];
 
+        // TODO: does this need to be renamed?
+        self.onStartupComplete = function() {
+            self.command_response_popup = $("#command_response_popup");
+        };
+
+        // TODO: does this need to be renamed?
+        self.commandResponse = ko.observable("");
+    
         self.isDefaultSlicer = ko.observable();
 
         self.pathBroken = ko.observable();
@@ -25,7 +33,7 @@ $(function() {
         self.profileDisplayName = ko.observable();
         self.profileDescription = ko.observable();
         self.profileAllowOverwrite = ko.observable(true);
-
+        
         self.uploadElement = $("#settings-slicer-import");
         self.uploadButton = $("#settings-slicer-import-start");
         self.uploadData = null;
@@ -171,6 +179,44 @@ $(function() {
                 }
             });
         };
+        
+        self.showCommandResponse = function(input){
+			self.command_response_popup.modal({keyboard: false, backdrop: "static", show: true});
+			if (input === "hide"){
+				self.command_response_popup.modal("hide");
+			}
+		};
+
+        self.onDataUpdaterPluginMessage = function(plugin, data) {
+			// self.mgLog("onDataUpdaterPluginMessage triggered.");
+			if (plugin != "slicer") {
+				// console.log('Ignoring '+plugin); // was commented out
+				return;
+			}
+            if (data.commandResponse !== undefined ){
+                // this works, but it won't send data to commandResponseText :/
+                console.log(data.commandResponse); // was commented out
+                // this doesn't work
+                
+                self.commandResponse(self.commandResponse() + data.commandResponse.toString());
+                //self.commandResponse(self.commandResponse()+data.commandResponse.toString());    
+
+                //get div and scroll to bottom
+                self.commandResponseText = $("#commandResponseText");
+                self.commandResponseText.scrollTop(self.commandResponseText[0].scrollHeight);
+                self.commandResponseText2 = $("#commandResponseText2");
+                self.commandResponseText2.scrollTop(self.commandResponseText2[0].scrollHeight);
+            }
+        };
+        
+
+        self.downloadSlicer = function() {
+            var url = OctoPrint.getSimpleApiUrl("slicer");
+            OctoPrint.issueCommand(url, "test_download_prusaslicer")
+                .done(function(response) {
+                        //console.log(response);
+            });
+        };
 
         self.showImportProfileDialog = function() {
             self.clearUpload();
@@ -252,5 +298,14 @@ $(function() {
     }
 
     // view model class, parameters for constructor, container to bind to
-    ADDITIONAL_VIEWMODELS.push([Slic3rViewModel, ["loginStateViewModel", "settingsViewModel", "slicingViewModel"], document.getElementById("settings_plugin_slicer_dialog")]);
+    OCTOPRINT_VIEWMODELS.push([
+        Slic3rViewModel,
+    
+        // e.g. loginStateViewModel, settingsViewModel, ...
+        [ "loginStateViewModel", "settingsViewModel", "slicingViewModel"],
+    
+        // e.g. #settings_plugin_slicer, #tab_plugin_slicer, ...
+        [ "#settings_plugin_slicer_dialog", "#command_response_popup" ]
+    ]);
+
 });

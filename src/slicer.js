@@ -91,6 +91,7 @@ function SlicerViewModel(parameters) {
         new ModelArranger().arrange(self.stlViewPort.models());
     };
 
+    // Scans the active OctoPrint printer profile and calculates the bed size
     ko.computed(function() {
         var profileName = self.slicingViewModel.printerProfile();
         if (profileName) {
