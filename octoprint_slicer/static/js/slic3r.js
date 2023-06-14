@@ -224,8 +224,8 @@ $(function() {
         };
 
         self.setAsDefaultSlicer = function() {
-            if (self.settings.slicing.defaultSlicer() != "slicer") {
-                self.settings.slicing.defaultSlicer("slicer");
+            if (self.settings.slicing.defaultSlicer() != "PrusaSlicer") {
+                self.settings.slicing.defaultSlicer("PrusaSlicer");
                 self.isDefaultSlicer("after_save");
             }
         };
@@ -279,7 +279,7 @@ $(function() {
 
         self.onSettingsShown = function() {
             if ('slicing' in self.settings && 'defaultSlicer' in self.settings.slicing) {
-                self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "slicer" ? "yes" : "no");
+                self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "PrusaSlicer" ? "yes" : "no");
             } else {
                 self.isDefaultSlicer("unknown");
             }

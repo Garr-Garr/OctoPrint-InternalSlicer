@@ -21,9 +21,9 @@
                 <button class="btn" type="button" data-bind="hidden: isDefaultSlicer() == 'unknown', click: setAsDefaultSlicer">{{ _('Set as default slicer') }}</button>
                 <span class="help-inline" data-bind="hidden: isDefaultSlicer() == 'unknown', text: function() {
                     switch (isDefaultSlicer()) {
-                        case 'yes': return '{{ _('slicer is currently the default slicer') }}';
-                        case 'no': return '{{ _('slicer is not the default slicer') }}';
-                        case 'after_save': return '{{ _('slicer will be the default slicer after saving') }}';
+                        case 'yes': return '{{ _('PrusaSlicer is currently the default slicer') }}';
+                        case 'no': return '{{ _('PrusaSlicer is not the default slicer') }}';
+                        case 'after_save': return '{{ _('PrusaSlicer will be the default slicer after saving') }}';
                     }}()"></span>
             </div>
         </div>
