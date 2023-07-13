@@ -8,13 +8,14 @@ $(function() {
 
         // TODO: does this need to be renamed?
         self.onStartupComplete = function() {
-            self.command_response_popup = $("#command_response_popup");
+            self.slicer_command_response_popup = $("#slicer_command_response_popup");
         };
 
         // TODO: does this need to be renamed?
-        self.commandResponse = ko.observable("");
+        self.slicerCommandResponse = ko.observable("");
     
         self.isDefaultSlicer = ko.observable();
+        self.currentDiv = ko.observable("");
 
         self.pathBroken = ko.observable();
         self.pathOk = ko.observable(false);
@@ -42,6 +43,22 @@ $(function() {
                 self.uploadData.submit();
             }
         });
+
+        self.showNextDiv = function (data) {
+            var div1 = document.getElementById("test1");
+            var div2 = document.getElementById("test2");
+            var div3 = document.getElementById("test3");
+          
+            if (data === "test1") {
+              div1.style.display = "none";
+              div2.style.display = "block";
+            } else if (data === "test2") {
+              div2.style.display = "none";
+              div3.style.display = "block";
+            } else if (data === "test3") {
+              div3.style.display = "none";
+              div1.style.display = "block";
+            }};
         
         // Settings menu profile list
         self.profiles = new ItemListHelper(
@@ -180,10 +197,10 @@ $(function() {
             });
         };
         
-        self.showCommandResponse = function(input){
-			self.command_response_popup.modal({keyboard: false, backdrop: "static", show: true});
+        self.showSlicerCommandResponse = function(input){
+			self.slicer_command_response_popup.modal({keyboard: false, backdrop: "static", show: true});
 			if (input === "hide"){
-				self.command_response_popup.modal("hide");
+				self.slicer_command_response_popup.modal("hide");
 			}
 		};
 
@@ -193,19 +210,19 @@ $(function() {
 				// console.log('Ignoring '+plugin); // was commented out
 				return;
 			}
-            if (data.commandResponse !== undefined ){
+            if (data.slicerCommandResponse !== undefined ){
                 // this works, but it won't send data to commandResponseText :/
-                console.log(data.commandResponse); // was commented out
+                console.log(data.slicerCommandResponse); // was commented out
                 // this doesn't work
                 
-                self.commandResponse(self.commandResponse() + data.commandResponse.toString());
+                self.slicerCommandResponse(self.slicerCommandResponse() + data.slicerCommandResponse.toString());
                 //self.commandResponse(self.commandResponse()+data.commandResponse.toString());    
 
                 //get div and scroll to bottom
-                self.commandResponseText = $("#commandResponseText");
-                self.commandResponseText.scrollTop(self.commandResponseText[0].scrollHeight);
-                self.commandResponseText2 = $("#commandResponseText2");
-                self.commandResponseText2.scrollTop(self.commandResponseText2[0].scrollHeight);
+                self.slicerCommandResponseText = $("#slicerCommandResponseText");
+                self.slicerCommandResponseText.scrollTop(self.slicerCommandResponseText[0].scrollHeight);
+                self.slicerCommandResponseText2 = $("#slicerCommandResponseText2");
+                self.slicerCommandResponseText2.scrollTop(self.slicerCommandResponseText2[0].scrollHeight);
             }
         };
         
@@ -213,6 +230,14 @@ $(function() {
         self.downloadSlicer = function() {
             var url = OctoPrint.getSimpleApiUrl("slicer");
             OctoPrint.issueCommand(url, "test_download_prusaslicer")
+                .done(function(response) {
+                        //console.log(response);
+            });
+        };
+
+        self.resetWizard = function() {
+            var url = OctoPrint.getSimpleApiUrl("slicer");
+            OctoPrint.issueCommand(url, "test_reset_wizard")
                 .done(function(response) {
                         //console.log(response);
             });
@@ -305,7 +330,7 @@ $(function() {
         [ "loginStateViewModel", "settingsViewModel", "slicingViewModel"],
     
         // e.g. #settings_plugin_slicer, #tab_plugin_slicer, ...
-        [ "#settings_plugin_slicer_dialog", "#command_response_popup" ]
+        [ "#settings_plugin_slicer_dialog", "#slicer_command_response_popup" ]
     ]);
 
 });

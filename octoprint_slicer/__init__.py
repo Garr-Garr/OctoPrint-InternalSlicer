@@ -72,6 +72,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			slicer_engine="/home/pi/PrusaSlicer-2.4.2/prusa-slicer",
 			default_profile=None,
 			debug_logging=False
+			#wizard_version=1
 		)
 
 	def __init__(self):
@@ -106,20 +107,40 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			# Send the output to the logs
 			self._logger.info(line)
 			# Send the output to the client
-			self._plugin_manager.send_plugin_message("slicer", dict(commandResponse = line))
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = line))
 
 	def get_api_commands(self):
-		return dict(test_download_prusaslicer=[])
+		return dict(
+			test_download_prusaslicer=[],
+			test_reset_wizard=[]
+			)
 
 	def on_api_command(self, command, data):
 		if command == 'test_download_prusaslicer':
 			self.download_prusaslicer()
+		if command == 'test_reset_wizard':
+			self.reset_wizard()
 
-	def is_wizard_required(self):
-		return True
+	#def on_wizard_finish(self):
+		#self._logger.info("Wizard finished :)")
+		#self._settings.set(["wizard_version"], 2)
+
+	#def is_wizard_required(self):
+		#if self._settings.get_boolean(["setup_done"]) is False:
+			#self._logger.info("Setup wizard is required, running now (?)")
+			#self._settings.set_boolean(["setup_done"], True)
+			#self._settings.save()
+		#return True
 	
-	def get_wizard_version(self):
-		return 1
+	#ef get_wizard_version(self):
+		#slicer_wizard_version = self._settings.get(["wizard_version"])
+		# Returns 1 for the current wizard version, iterate wizard_version if you make changes to the wizard
+		#return slicer_wizard_version
+	
+	#def reset_wizard(self):
+		#self._settings.set(["wizard_version"], 1)
+		#self._settings.save()
+
 
 	def hashMatches(self, fileA, fileB):
 	# function to compare the MD5 hash of two files, returning True if they match, and False if they do not match;

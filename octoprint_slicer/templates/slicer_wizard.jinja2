@@ -1,0 +1,28 @@
+<p> testing </p>
+
+<div id="test1">
+    <form class="form-horizontal">
+        <div class="control-group">
+            <label class="control-label">{{ _('Testing Button') }}</label>
+            <div class="controls">
+                testingggggg.<br>
+                <button class="btn" type="button" onclick="click: function() { $root.showNextDiv('test1') }">Activate next div</button>
+            </div>
+        </div>
+    </form>
+
+{{ '<script>showNextDiv("test2");</script>'|safe }}
+</div>
+
+<div id="test2" style="display: none;">
+    <h2>Slicer Plugin Setup</h2>
+    <p>Welcome!</p>
+    <p></p>
+    <p></p>
+    <p></p>
+    <p></p>
+</div>
+
+<div id="test3" style="display: none;">
+
+</div>

@@ -126,14 +126,26 @@
         </div>
     </div>
 
-
-<div id="command_response_popup" class="modal hide fade">
+<form class="form-horizontal">
+    <div class="control-group">
+        <label class="control-label">{{ _('Reset Setup Wizard') }}</label>
+        <div class="controls">
+            You'll need to refresh the page after selecting this button.<br>
+            <button class="btn" type="button" data-bind="click: function() { $root.resetWizard(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Reset Setup Wizard</button>
+        </div>
+    </div>
+</form>
+<br>
+<br>
+<br>
+<br>
+<div id="slicer_command_response_popup" class="modal hide fade">
 	<center>Command Response:</center>
 	<br>
-	<center><textarea id="commandResponseText" data-bind="text: $root.commandResponse" style="width:90%;height:250px;"></textarea></center>
+	<center><textarea id="slicerCommandResponseText" data-bind="text: $root.slicerCommandResponse" style="width:90%;height:250px;"></textarea></center>
 	<br>
 	<div align="right">
-        <button class="btn btn-primary" data-bind="click: function() { $root.showCommandResponse('hide') }">Close</button>
+        <button class="btn btn-primary" data-bind="click: function() { $root.showSlicerCommandResponse('hide') }">Close</button>
     </div>
 </div>
 
