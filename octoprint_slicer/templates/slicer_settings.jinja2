@@ -6,7 +6,7 @@
             <label class="control-label">{{ _('Download PrusaSlicer') }}</label>
             <div class="controls">
                 This will download the latest version of PrusaSlicer and install it in a new directory.<br>
-                <button class="btn" type="button" data-bind="click: function() { $root.downloadSlicer(), $root.commandResponse(''), $root.showCommandResponse() }">Download PrusaSlicer</button>
+                <button class="btn" type="button" data-bind="click: function() { $root.downloadSlicer(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Download PrusaSlicer</button>
             </div>
         </div>
     </form>
@@ -126,6 +126,7 @@
         </div>
     </div>
 
+{# Commented out until the wizard is completed - Garrett 7/17/23 
 <form class="form-horizontal">
     <div class="control-group">
         <label class="control-label">{{ _('Reset Setup Wizard') }}</label>
@@ -135,6 +136,8 @@
         </div>
     </div>
 </form>
+#}
+
 <br>
 <br>
 <br>

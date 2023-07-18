@@ -1,15 +1,6 @@
 # coding=utf-8
 from __future__ import absolute_import
 
-### (Don't forget to remove me)
-# This is a basic skeleton for your plugin's __init__.py. You probably want to adjust the class name of your plugin
-# as well as the plugin mixins it's subclassing from. This is really just a basic skeleton to get you started,
-# defining your plugin as a template plugin, settings and asset plugin. Feel free to add or remove mixins
-# as necessary.
-#
-# Take a look at the documentation on what other plugin mixins are available.
-
-
 from .vector import Vector
 
 import uuid
@@ -65,16 +56,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 				   octoprint.plugin.EventHandlerPlugin,
 				   octoprint.plugin.WizardPlugin):
 
-	##~~ SettingsPlugin mixin
-
-	def get_settings_defaults(self):
-		return dict(
-			slicer_engine="/home/pi/PrusaSlicer-2.4.2/prusa-slicer",
-			default_profile=None,
-			debug_logging=False
-			#wizard_version=1
-		)
-
 	def __init__(self):
 		# setup job tracking across threads
 		self._slicing_commands = dict()
@@ -82,6 +63,61 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		self._cancelled_jobs = []
 		self._cancelled_jobs_mutex = threading.Lock()
 
+	def get_update_information(self):
+		# Define the configuration for your plugin to use with the Software Update
+		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
+		# for details.
+		return dict(
+			slicer=dict(
+				displayName="New Slicer",
+				displayVersion=self._plugin_version,
+
+				# version check: github repository
+				type="github_release",
+				user="Garr-R",
+				repo="OctoPrint-Slicer",
+				current=self._plugin_version,
+
+				# update method: pip
+				pip="https://github.com/Garr-R/OctoPrint-Slicer/archive/{target_version}.zip"
+			)
+		)
+
+	##~~ AssetPlugin mixin
+	def get_assets(self):
+		# Define your plugin's asset files to automatically include in the
+		# core UI here.
+		return dict(
+			js=["js/stats.min.js", "js/octoprint_slicer.min.js", "js/slic3r.js"],
+			css=["css/slicer.css", "css/slic3r.css"],
+			less=["less/slicer.less"]
+		)
+
+	##~~ SettingsPlugin mixin
+	def get_settings_defaults(self):
+		return dict(
+			slicer_engine="/home/pi/PrusaSlicer-2.4.2/prusa-slicer",
+			default_profile=None,
+			debug_logging=False
+			#wizard_version=1
+		)
+	
+	def on_settings_save(self, data):
+		slicer_engine = self._settings.get([slicer_engine])
+		
+		old_debug_logging = self._settings.get_boolean(["debug_logging"])
+		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+		new_debug_logging = self._settings.get_boolean(["debug_logging"])
+		if old_debug_logging != new_debug_logging:
+			if new_debug_logging:
+				self._logger.setLevel(logging.DEBUG)
+			else:
+				self._logger.setLevel(logging.CRITICAL)
+
+	##~~ StartupPlugin mixin
+	# Copy PrusaSlicer download script to scripts folder on startup
+	# TODO: use hashlib to compare files and only copy if different
 	def on_startup(self, host, port):
 		self._slicer_logger = self._logger
 		# setup our custom logger
@@ -93,22 +129,25 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		self._slicer_logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
 		self._slicer_logger.propagate = False
 
-	def download_prusaslicer(self):
-		self._logger.info("Starting PrusaSlicer v2.4.2 download")
+	def on_after_startup(self):
+		src_files = os.listdir(self._basefolder+"/static/scripts")
+		src = (self._basefolder+"/static/scripts")
+		dest = ("/home/pi/.octoprint/scripts")
 
-		# Get the path to the shell script
-		script_path = "/home/pi/.octoprint/scripts/downloadPrusaSlicer.sh"
+		for file_name in src_files:
+			full_src_name = os.path.join(src, file_name)
+			full_dest_name = os.path.join(dest, file_name)
+			if not (os.path.isfile(full_dest_name)):
+				shutil.copy(full_src_name, dest)
+				os.chmod(full_dest_name, 0o755)
+				self._logger.info("Had to copy "+file_name+" to scripts folder.")
+			else:
+				if not self.hashMatches(full_src_name, full_dest_name):
+					shutil.copy(full_src_name, dest)
+					self._logger.info("Had to overwrite {} with new version.".format(file_name))
+					os.chmod(full_dest_name, 0o755)
 
-		# Create a subprocess object
-		proc = subprocess.Popen(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-		
-		# Read all the lines of the output
-		for line in proc.stdout:
-			# Send the output to the logs
-			self._logger.info(line)
-			# Send the output to the client
-			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = line))
-
+	##~~ SimpleApiPlugin mixin
 	def get_api_commands(self):
 		return dict(
 			test_download_prusaslicer=[],
@@ -121,6 +160,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		if command == 'test_reset_wizard':
 			self.reset_wizard()
 
+	##~~ WizardPlugin mixin
 	#def on_wizard_finish(self):
 		#self._logger.info("Wizard finished :)")
 		#self._settings.set(["wizard_version"], 2)
@@ -141,16 +181,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		#self._settings.set(["wizard_version"], 1)
 		#self._settings.save()
 
-
-	def hashMatches(self, fileA, fileB):
-	# function to compare the MD5 hash of two files, returning True if they match, and False if they do not match;
-	# this is close enough for our needs to confirming that the files are identical
-		if ((hashlib.md5(open(fileA).read().encode()).hexdigest()) == (hashlib.md5(open(fileB).read().encode()).hexdigest())):
-			return True
-		else:
-			return False
-
-	##~~ BlueprintPlugin API
+	##~~ BlueprintPlugin mixin
 	@octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
 	def importSlicerProfile(self):
 		import datetime
@@ -218,105 +249,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		r.headers["Location"] = result["resource"]
 		return r
 
-	def on_settings_save(self, data):
-		slicer_engine = self._settings.get([slicer_engine])
-		
-		old_debug_logging = self._settings.get_boolean(["debug_logging"])
-		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-
-		new_debug_logging = self._settings.get_boolean(["debug_logging"])
-		if old_debug_logging != new_debug_logging:
-			if new_debug_logging:
-				self._logger.setLevel(logging.DEBUG)
-			else:
-				self._logger.setLevel(logging.CRITICAL)
-
-	##~~ AssetPlugin mixin
-	def get_assets(self):
-		# Define your plugin's asset files to automatically include in the
-		# core UI here.
-		return dict(
-			js=["js/stats.min.js", "js/octoprint_slicer.min.js", "js/slic3r.js"],
-			css=["css/slicer.css", "css/slic3r.css"],
-			less=["less/slicer.less"]
-		)
-
-	##~~ Softwareupdate hook
-	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
-		# for details.
-		return dict(
-			slicer=dict(
-				displayName="New Slicer",
-				displayVersion=self._plugin_version,
-
-				# version check: github repository
-				type="github_release",
-				user="Garr-R",
-				repo="OctoPrint-Slicer",
-				current=self._plugin_version,
-
-				# update method: pip
-				pip="https://github.com/Garr-R/OctoPrint-Slicer/archive/{target_version}.zip"
-			)
-		)
-	
-	# Copy PrusaSlicer download script to scripts folder on startup
-	# TODO: use hashlib to compare files and only copy if different
-	def on_after_startup(self):
-		src_files = os.listdir(self._basefolder+"/static/scripts")
-		src = (self._basefolder+"/static/scripts")
-		dest = ("/home/pi/.octoprint/scripts")
-
-		for file_name in src_files:
-			full_src_name = os.path.join(src, file_name)
-			full_dest_name = os.path.join(dest, file_name)
-			if not (os.path.isfile(full_dest_name)):
-				shutil.copy(full_src_name, dest)
-				os.chmod(full_dest_name, 0o755)
-				self._logger.info("Had to copy "+file_name+" to scripts folder.")
-			else:
-				if not self.hashMatches(full_src_name, full_dest_name):
-					shutil.copy(full_src_name, dest)
-					self._logger.info("Had to overwrite {} with new version.".format(file_name))
-					os.chmod(full_dest_name, 0o755)
-
-	# Event monitor
-	def on_event(self, event, payload):
-		# check if event is slicing started
-		if event == octoprint.events.Events.SLICING_STARTED :
-
-			# Set processing slice
-			self.processingSlice = True
-
-		# Otherwise check if event is slicing done, cancelled, or failed
-		elif event == octoprint.events.Events.SLICING_DONE or event == octoprint.events.Events.SLICING_CANCELLED or event == octoprint.events.Events.SLICING_FAILED :
-
-			# Clear processing slice
-			self.processingSlice = False
-
-			# Restore files
-			self.restoreFiles()
-
-	def restoreFiles(self) :
-		# Check if slicer was changed
-		if self.slicerChanges is not None :
-
-			# Move original files back
-			os.remove(self.slicerChanges["Slicer Profile Location"])
-			shutil.move(self.slicerChanges["Slicer Profile Temporary"], self.slicerChanges["Slicer Profile Location"])
-
-			if "Model Temporary" in self.slicerChanges :
-				os.remove(self.slicerChanges["Model Location"])
-				shutil.move(self.slicerChanges["Model Temporary"], self.slicerChanges["Model Location"])
-
-			# Restore printer profile
-			self._printer_profile_manager.save(self.slicerChanges["Printer Profile Content"], True)
-
-			# Clear slicer changes
-			self.slicerChanges = None
-
 	# Upload 3D model event
 	@octoprint.plugin.BlueprintPlugin.route("/upload", methods=["POST"])
 	def upload(self) :
@@ -373,7 +305,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			output.close()
 
 			self.tempProfileName = "temp-" + str(uuid.uuid1())
-			if flask.request.values["Slicer Name"] == "PrusaSlicer" :
+			if flask.request.values["Slicer Name"] == "prusaslicer" :
 				self.convertSlicerToProfile(temp, '', '', '')
 
 			# Remove temporary file
@@ -388,7 +320,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			}
 
 			# Otherwise check if slicer is Slic3r
-			if flask.request.values["Slicer Name"] == "PrusaSlicer" :
+			if flask.request.values["Slicer Name"] == "prusaslicer" :
 
 				# Change printer profile
 				search = re.findall("bed_size\s*?=\s*?(\d+.?\d*)\s*?,\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
@@ -439,22 +371,24 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		# Return error
 		return flask.jsonify(dict(value = "Error"))
 
-	# Slic3r profile cleanup
-	#TODO: I don't think this is needed anymore, disabled for now (4/13/2023)
-	def slic3rProfileCleanUp(self, input, output) :
-		# Create output
-		output = open(output, "wb")
+	##~~ EventHandlerPlugin mixin
+	def on_event(self, event, payload):
+		# check if event is slicing started
+		if event == octoprint.events.Events.SLICING_STARTED :
 
-		# Go through all lines in input
-		for line in open(input) :
-			# Remove comments from input
-			if ';' in line and "_gcode" not in line and line[0] != '\t' :
-				output.write(line[0 : line.index(';')] + '\n')
-			else :
-				output.write(line)
-		# Close output
-		output.close()
+			# Set processing slice
+			self.processingSlice = True
 
+		# Otherwise check if event is slicing done, cancelled, or failed
+		elif event == octoprint.events.Events.SLICING_DONE or event == octoprint.events.Events.SLICING_CANCELLED or event == octoprint.events.Events.SLICING_FAILED :
+
+			# Clear processing slice
+			self.processingSlice = False
+
+			# Restore files
+			self.restoreFiles()
+
+	##~~ SlicerPlugin mixin
 	def is_slicer_configured(self):
 		# Check if slicer engine path is configured
 		slicer_engine = normalize_path(self._settings.get(["slicer_engine"]))
@@ -462,7 +396,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 	
 	def get_slicer_properties(self):
 		return dict(
-			type="slicer",
+			type="prusaslicer",
 			name="PrusaSlicer",
 			same_device=True,
 			progress_report=False,
@@ -524,34 +458,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			return False, "Path to Slicer is not configured "
 
 		args = ['"%s"' % executable, '--export-gcode', '--load', '"%s"' % profile_path,   '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-
 		env = {}
-
-		#try:
-			#import subprocess
-			#help_process = subprocess.Popen((executable, '--help'), stdout=subprocess.PIPE)
-			#help_text_all = help_process.communicate()
-      
-			# help output includes a trace statement now on the first line. If we find it, use the second
-			# line instead
-			# [2022-04-22 21:44:51.396082] [0x75527010] [trace]   Initializing StaticPrintConfigs
-
-			# Actually, I think this needs to be set to the forth line instead
-			#if help_text_all[0].find(b'trace') >= 0:
-				#help_text = help_text_all[1]
-			#else:
-				#help_text = help_text_all[0]
-			#self._logger.debug("Help_text:" + help_text)
-
-			#if help_text.startswith(b'PrusaSlicer-2.3') or help_text.startswith(b'PrusaSlicer-2.4'):
-				#args = ['"%s"' % executable, '-g --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-				#env['SLICER_LOGLEVEL'] = "9"
-				#self._logger.info("Running Prusa Slicer >= 2.3")
-			#elif help_text.startswith(b'PrusaSlicer-2'):
-				#args = ['"%s"' % executable, '--slice --load', '"%s"' % profile_path, '--center', '"%f,%f"' % (posX, posY), '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
-				#self._logger.info("Running Prusa Slicer >= 2")
-		#except e:
-			#self._logger.info("Error during Prusa Slicer detection:" + str(e))
 
 		import sarge
 		working_dir, _ = os.path.split(executable)
@@ -670,10 +577,51 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			raise IOError("Cannot overwrite {path}".format(path=path))
 		Profile.to_slicer_ini(profile, path, display_name=display_name, description=description)
 
+	##~~ Move this to the bottom
+	def download_prusaslicer(self):
+		self._logger.info("Starting PrusaSlicer v2.4.2 download")
 
+		# Get the path to the shell script
+		script_path = "/home/pi/.octoprint/scripts/downloadPrusaSlicer.sh"
 
-	#TODO: Re-enable this later
-	def _sanitize_name(name):
+		# Create a subprocess object
+		proc = subprocess.Popen(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+		
+		# Read all the lines of the output
+		for line in proc.stdout:
+			# Send the output to the logs
+			self._logger.info(line)
+			# Send the output to the client
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = line))
+
+	def restoreFiles(self) :
+		# Check if slicer was changed
+		if self.slicerChanges is not None :
+
+			# Move original files back
+			os.remove(self.slicerChanges["Slicer Profile Location"])
+			shutil.move(self.slicerChanges["Slicer Profile Temporary"], self.slicerChanges["Slicer Profile Location"])
+
+			if "Model Temporary" in self.slicerChanges :
+				os.remove(self.slicerChanges["Model Location"])
+				shutil.move(self.slicerChanges["Model Temporary"], self.slicerChanges["Model Location"])
+
+			# Restore printer profile
+			self._printer_profile_manager.save(self.slicerChanges["Printer Profile Content"], True)
+
+			# Clear slicer changes
+			self.slicerChanges = None
+
+	def hashMatches(self, fileA, fileB):
+	# function to compare the MD5 hash of two files, returning True if they match, and False if they do not match;
+	# this is close enough for our needs to confirming that the files are identical
+		if ((hashlib.md5(open(fileA).read().encode()).hexdigest()) == (hashlib.md5(open(fileB).read().encode()).hexdigest())):
+			return True
+		else:
+			return False
+		
+	#TODO: Re-enable this later (was originally named _sanitize_name)
+	def sanitizeName(name):
 		if name is None:
 			return None
 		
@@ -686,6 +634,21 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		sanitized_name = sanitized_name.replace(" ", "_")
 		return sanitized_name.lower()
 
+	# Slic3r profile cleanup
+	#TODO: I don't think this is needed anymore, disabled for now (4/13/2023)
+	def slic3rProfileCleanUp(self, input, output) :
+		# Create output
+		output = open(output, "wb")
+
+		# Go through all lines in input
+		for line in open(input) :
+			# Remove comments from input
+			if ';' in line and "_gcode" not in line and line[0] != '\t' :
+				output.write(line[0 : line.index(';')] + '\n')
+			else :
+				output.write(line)
+		# Close output
+		output.close()
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that

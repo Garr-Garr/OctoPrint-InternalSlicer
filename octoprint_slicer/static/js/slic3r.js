@@ -226,7 +226,6 @@ $(function() {
             }
         };
         
-
         self.downloadSlicer = function() {
             var url = OctoPrint.getSimpleApiUrl("slicer");
             OctoPrint.issueCommand(url, "test_download_prusaslicer")
@@ -249,8 +248,8 @@ $(function() {
         };
 
         self.setAsDefaultSlicer = function() {
-            if (self.settings.slicing.defaultSlicer() != "PrusaSlicer") {
-                self.settings.slicing.defaultSlicer("PrusaSlicer");
+            if (self.settings.slicing.defaultSlicer() != "prusaslicer") {
+                self.settings.slicing.defaultSlicer("prusaslicer");
                 self.isDefaultSlicer("after_save");
             }
         };
@@ -304,7 +303,7 @@ $(function() {
 
         self.onSettingsShown = function() {
             if ('slicing' in self.settings && 'defaultSlicer' in self.settings.slicing) {
-                self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "PrusaSlicer" ? "yes" : "no");
+                self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "prusaslicer" ? "yes" : "no");
             } else {
                 self.isDefaultSlicer("unknown");
             }
