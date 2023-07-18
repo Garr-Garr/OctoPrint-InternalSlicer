@@ -93,28 +93,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			less=["less/slicer.less"]
 		)
 
-	##~~ SettingsPlugin mixin
-	def get_settings_defaults(self):
-		return dict(
-			slicer_engine="/home/pi/PrusaSlicer-2.4.2/prusa-slicer",
-			default_profile=None,
-			debug_logging=False
-			#wizard_version=1
-		)
-	
-	def on_settings_save(self, data):
-		slicer_engine = self._settings.get([slicer_engine])
-		
-		old_debug_logging = self._settings.get_boolean(["debug_logging"])
-		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-
-		new_debug_logging = self._settings.get_boolean(["debug_logging"])
-		if old_debug_logging != new_debug_logging:
-			if new_debug_logging:
-				self._logger.setLevel(logging.DEBUG)
-			else:
-				self._logger.setLevel(logging.CRITICAL)
-
 	##~~ StartupPlugin mixin
 	# Copy PrusaSlicer download script to scripts folder on startup
 	# TODO: use hashlib to compare files and only copy if different
@@ -130,6 +108,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		self._slicer_logger.propagate = False
 
 	def on_after_startup(self):
+		self.get_slicer_default_profile()
 		src_files = os.listdir(self._basefolder+"/static/scripts")
 		src = (self._basefolder+"/static/scripts")
 		dest = ("/home/pi/.octoprint/scripts")
@@ -146,6 +125,26 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 					shutil.copy(full_src_name, dest)
 					self._logger.info("Had to overwrite {} with new version.".format(file_name))
 					os.chmod(full_dest_name, 0o755)
+
+	##~~ SettingsPlugin mixin
+	def get_settings_defaults(self):
+		return dict(
+			slicer_engine=None,
+			default_profile=None,
+			debug_logging=True
+			#wizard_version=1
+		)
+	
+	def on_settings_save(self, data):
+		old_debug_logging = self._settings.get_boolean(["debug_logging"])
+		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+
+		new_debug_logging = self._settings.get_boolean(["debug_logging"])
+		if old_debug_logging != new_debug_logging:
+			if new_debug_logging:
+				self._logger.setLevel(logging.DEBUG)
+			else:
+				self._logger.setLevel(logging.CRITICAL)
 
 	##~~ SimpleApiPlugin mixin
 	def get_api_commands(self):
@@ -403,9 +402,11 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		)
 
 	def get_slicer_default_profile(self):
-		path = self._settings.get(["default_profile"])
-		if not path:
-			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "test_M2.ini")
+		#path = self._settings.get(["default_profile"])
+		if self._settings.get(["default_profile"]) is None:
+			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default_MakerGear-M2.profile")
+			# Technicially correct, but doesn't load (/home/pi/oprint/lib/python3.7/site-packages/octoprint_slicer/profiles/default_MakerGear-M2.profile)
+			#self._settings.set(["default_profile"], path)
 		return self.get_slicer_profile(path)
 
 	def get_slicer_profile(self, path):
@@ -577,7 +578,9 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			raise IOError("Cannot overwrite {path}".format(path=path))
 		Profile.to_slicer_ini(profile, path, display_name=display_name, description=description)
 
-	##~~ Move this to the bottom
+
+
+
 	def download_prusaslicer(self):
 		self._logger.info("Starting PrusaSlicer v2.4.2 download")
 
@@ -593,6 +596,17 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			self._logger.info(line)
 			# Send the output to the client
 			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = line))
+
+		# Wait for the process to finish
+		if proc.poll() is not None and os.access("/home/pi/PrusaSlicer-2.4.2/prusa-slicer", os.X_OK):
+		#if os.path.exists("/home/pi/PrusaSlicer-2.4.2/prusa-slicer"):
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = "PrusaSlicer has been installed!"))
+			self._logger.info(dict(slicerCommandResponse))
+		else: 
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = "The PrusaSlicer installation has failed Maybe try downloading the offline installation?"))
+			self._logger.info(dict(slicerCommandResponse))
+			#the line below doesn't work, but it should
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = "https://github.com/Garr-R/OctoPrint-Slicer/archive/refs/heads/offline.zip"))
 
 	def restoreFiles(self) :
 		# Check if slicer was changed
@@ -613,7 +627,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			self.slicerChanges = None
 
 	def hashMatches(self, fileA, fileB):
-	# function to compare the MD5 hash of two files, returning True if they match, and False if they do not match;
+	# function to compare the MD5 hash of two files, returning True if they match, and False if they do not match
 	# this is close enough for our needs to confirming that the files are identical
 		if ((hashlib.md5(open(fileA).read().encode()).hexdigest()) == (hashlib.md5(open(fileB).read().encode()).hexdigest())):
 			return True
@@ -633,22 +647,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		sanitized_name = ''.join(c for c in name if c in valid_chars)
 		sanitized_name = sanitized_name.replace(" ", "_")
 		return sanitized_name.lower()
-
-	# Slic3r profile cleanup
-	#TODO: I don't think this is needed anymore, disabled for now (4/13/2023)
-	def slic3rProfileCleanUp(self, input, output) :
-		# Create output
-		output = open(output, "wb")
-
-		# Go through all lines in input
-		for line in open(input) :
-			# Remove comments from input
-			if ';' in line and "_gcode" not in line and line[0] != '\t' :
-				output.write(line[0 : line.index(';')] + '\n')
-			else :
-				output.write(line)
-		# Close output
-		output.close()
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that

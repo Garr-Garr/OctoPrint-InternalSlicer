@@ -1,7 +1,6 @@
 # coding=utf-8
 
 ########################################################################################################################
-### Do not forget to adjust the following variables to your own plugin.
 
 # The plugin's identifier, has to be unique
 plugin_identifier = "slicer"
@@ -14,7 +13,7 @@ plugin_package = "octoprint_slicer"
 plugin_name = "OctoPrint-Slicer"
 
 # The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "2.0.0"
+plugin_version = "2.0.1"
 
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module

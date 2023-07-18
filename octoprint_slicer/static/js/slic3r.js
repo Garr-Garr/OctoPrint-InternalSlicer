@@ -205,18 +205,13 @@ $(function() {
 		};
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
-			// self.mgLog("onDataUpdaterPluginMessage triggered.");
 			if (plugin != "slicer") {
-				// console.log('Ignoring '+plugin); // was commented out
 				return;
 			}
             if (data.slicerCommandResponse !== undefined ){
-                // this works, but it won't send data to commandResponseText :/
-                console.log(data.slicerCommandResponse); // was commented out
-                // this doesn't work
+                console.log(data.slicerCommandResponse);
                 
                 self.slicerCommandResponse(self.slicerCommandResponse() + data.slicerCommandResponse.toString());
-                //self.commandResponse(self.commandResponse()+data.commandResponse.toString());    
 
                 //get div and scroll to bottom
                 self.slicerCommandResponseText = $("#slicerCommandResponseText");
@@ -275,7 +270,7 @@ $(function() {
 
         self.requestData = function() {
             $.ajax({
-                url: API_BASEURL + "slicing/slicer/profiles",
+                url: API_BASEURL + "slicing/prusa/profiles",
                 type: "GET",
                 dataType: "json",
                 success: self.fromResponse

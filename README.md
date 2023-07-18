@@ -13,27 +13,29 @@ Slicer plugin offers useful features that OctoPrint's built-in slicer doesn't ha
 - Customizable slicing settings, including Basic (layer height, bed temperature ...) and Advanced (print speed, start/end G-code ...).
 - More is coming...
 
-*Currently only [PrusaSlicer ~v2.4.2 works](https://github.com/prusa3d/PrusaSlicer/releases/tag/version_2.4.2) and older versions work, but profiles exported from PrusaSlicer v2.5+ still import correctly into this plugin :)
-
 ## Setup
-
+### Online:
 Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
 or manually using this URL:
 
     https://github.com/Garr-R/OctoPrint-Slicer/archive/refs/heads/master.zip
 
-## Plans
+### Offline (Bundled with PruasSlicer v2.4.2): 
+You'll need to download the following zip file on your computer / device and then upload it to OctoPrint using the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager):
 
-- [x] Make PrusaSlicer the default slicer
-- [x] Add a script to download PrusaSlicer v2.4.2 to a Raspberry Pi
-- [x] Remove Cura support 
-- [ ] Add a script to download PrusaSlicer to a Windows OctoPrint configuration
-- [ ] Add a script to download PrusaSlicer to a Ubuntu OctoPrint configuration
-- [ ] Fix Docker development support
-- [ ] Add PrusaSlicer settings documentation hyperlinks to each slicer setting
+    https://github.com/Garr-R/OctoPrint-Slicer/archive/refs/heads/offline.zip
+
+## Importing your printer's PrusaSlicer profile
+add instructions
+
+## Future plans
+
 - [ ] Create a setup wizard that helps explain downloading PrusaSlicer and importing profiles
-  - [ ] Add all of the default vendor profiles and presets from PrusaSlicer so users can select them from the setup wizard and don't have to manually export/import their machine's profile
-
+- [ ] Update Docker development support
+- [ ] Make compatible with the latest version of PrusaSlicer (v2.6)
+- [ ] Add more adjustable profile settings
+- [ ] OctoPrint slicing profile overhaul (Use Print/Filament/Printer profiles from official vendor bundles)
+  
 ## More Photos
 
 <img src="/docs/screenshot2.png" width="600">

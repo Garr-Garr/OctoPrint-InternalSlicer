@@ -1,16 +1,19 @@
+{# PrusaSlicer (Online) download button #}
 <div id="settings_plugin_slicer_dialog" data-bind="allowBindings: true">
-    <h3>{{ _('General') }}</h3>
+    <h3>{{ _('Raspberry Pi General Settings') }}</h3>
 
     <form class="form-horizontal">
         <div class="control-group">
             <label class="control-label">{{ _('Download PrusaSlicer') }}</label>
             <div class="controls">
-                This will download the latest version of PrusaSlicer and install it in a new directory.<br>
+                This will download the latest version of PrusaSlicer and install it in a new directory on your Raspberry Pi.<br><br>
                 <button class="btn" type="button" data-bind="click: function() { $root.downloadSlicer(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Download PrusaSlicer</button>
             </div>
         </div>
     </form>
     
+    {# Test slicer engine path #}
+    <h3>{{ _('PrusaSlicer Location Settings') }}</h3>
     <form class="form-horizontal">
       {% include "snippets/settings/slicer/enginePath.jinja2" %}
         <div class="control-group">
@@ -29,6 +32,7 @@
         </div>
     </form>
 
+    {# Imported profiles  table #}
     <h3>{{ _('Profiles') }}</h3>
 
     <div class="pull-right">
@@ -68,6 +72,7 @@
 
     <button class="btn pull-right" data-bind="click: function() { $root.showImportProfileDialog() }">{{ _('Import Profile...') }}</button>
 
+    {# Import profile popup #}
     <div id="settings_plugin_slicer_import" class="modal hide fade">
         <div class="modal-header">
             <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
@@ -126,7 +131,7 @@
         </div>
     </div>
 
-{# Commented out until the wizard is completed - Garrett 7/17/23 
+{# Reset startup wizard - Commented out until the wizard is completed - Garrett 7/17/23 
 <form class="form-horizontal">
     <div class="control-group">
         <label class="control-label">{{ _('Reset Setup Wizard') }}</label>
@@ -142,6 +147,8 @@
 <br>
 <br>
 <br>
+
+{# Command response popup #}
 <div id="slicer_command_response_popup" class="modal hide fade">
 	<center>Command Response:</center>
 	<br>

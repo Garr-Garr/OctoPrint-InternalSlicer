@@ -17,10 +17,3 @@ rm PrusaSlicer-2.4.2+linux-armv7l-GTK2-202204251109.tar.bz2
 
 # Change permissions to the PrusaSlicer program
 chmod a+x /home/pi/PrusaSlicer-2.4.2/prusa-slicer
-
-# Notify the user that PrusaSlicer has been installed
-echo ".........................................."
-echo ".........................................."
-echo ".........................................."
-echo ".........................................."
-echo "PrusaSlicer has been installed!"
