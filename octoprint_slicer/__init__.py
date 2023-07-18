@@ -233,7 +233,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
 
 		# Save profile
-		self._slicing_manager.save_profile("PrusaSlicer",
+		self._slicing_manager.save_profile("prusa",
 										profile_name,
 										profile_dict,
 										allow_overwrite=profile_allow_overwrite,
@@ -241,7 +241,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 										description=profile_description)
 
 		result = dict(
-			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="PrusaSlicer", name=profile_name, _external=True),
+			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="prusa", name=profile_name, _external=True),
 			displayName=profile_display_name,
 			description=profile_description
 		)
@@ -305,7 +305,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			output.close()
 
 			self.tempProfileName = "temp-" + str(uuid.uuid1())
-			if flask.request.values["Slicer Name"] == "prusaslicer" :
+			if flask.request.values["Slicer Name"] == "prusa" :
 				self.convertSlicerToProfile(temp, '', '', '')
 
 			# Remove temporary file
@@ -320,7 +320,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			}
 
 			# Otherwise check if slicer is Slic3r
-			if flask.request.values["Slicer Name"] == "prusaslicer" :
+			if flask.request.values["Slicer Name"] == "prusa" :
 
 				# Change printer profile
 				search = re.findall("bed_size\s*?=\s*?(\d+.?\d*)\s*?,\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
@@ -396,8 +396,8 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 	
 	def get_slicer_properties(self):
 		return dict(
-			type="prusaslicer",
-			name="PrusaSlicer",
+			type="prusa",
+			name="PrusaSlicer v2.4.2",
 			same_device=True,
 			progress_report=False,
 		)
