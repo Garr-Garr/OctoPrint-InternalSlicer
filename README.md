@@ -21,9 +21,17 @@ or manually using this URL:
     https://github.com/Garr-R/OctoPrint-Slicer/archive/refs/heads/master.zip
 
 ### Offline (Bundled with PruasSlicer v2.4.2): 
-You'll need to download the following zip file on your computer / device and then upload it to OctoPrint using the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager):
 
-    https://github.com/Garr-R/OctoPrint-Slicer/archive/refs/heads/offline.zip
+1. Download the following zip file to a device with internet connection
+    - https://github.com/Garr-R/OctoPrint-Slicer/archive/refs/heads/offline.zip
+2. Upload it to OctoPrint using the OctoPrint Plugin Manager:
+    - Open the OctoPrint Settings Menu
+    - Navigate to the "Plugin Manager" tab
+    - Select the  "Get More" button
+    - Select the "Browse" button underneath "from an uploaded file"
+    - Upload the newly downloaded "OctoPrint-Slicer-offline.zip" file
+    - Select "Install"
+    - Restart OctoPrint when finished
 
 ## Importing your printer's PrusaSlicer profile
 add instructions
