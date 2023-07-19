@@ -2,15 +2,14 @@
 
 <img src="/docs/screenshot1.png" width="600">
 
-Slicer plugin offers useful features that OctoPrint's built-in slicer doesn't have:
-
+## Plugin features
 - [PrusaSlicer](https://www.prusa3d.com/page/prusaslicer_424/) support
 - Rotate, scale, and move STL models.
 - Slice multiple STLs at a time. Split 1 STL into unconnected parts.
 - Circular print bed support (do you have a delta printer?).
 - High-light overhang areas. Automatically orient the model for better result ("lay flat").
 - Slice based on PrusaSlicer profiles you upload to OctoPrint.
-- Customizable slicing settings, including Basic (layer height, bed temperature ...) and Advanced (print speed, start/end G-code ...).
+- Customizable slicer settings, including Basic (layer height, bed temperature ...) and Advanced (print speed, start/end G-code ...).
 - More is coming...
 
 ## Setup
@@ -34,7 +33,8 @@ or manually using this URL:
     - Restart OctoPrint when finished
 
 ## Importing your printer's PrusaSlicer profile
-add instructions
+
+[Click here for instructions on how to export and import your PrusaSlicer profiles](https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-importing-PrusaSlicer-profiles)
 
 ## Future plans
 
@@ -51,5 +51,5 @@ add instructions
 <img src="/docs/screenshot3.png" width="600">
 <img src="/docs/screenshot4.png" width="600">
 
-## Thank you to [Kenneth Jiang](https://github.com/kennethjiang/), [Foosel](https://github.com/foosel), [Eyal](https://github.com/eyal0), and many many others for building the original plugins and the OctoPrint Mixins! 
+## Thank you to [Kenneth Jiang](https://github.com/kennethjiang/), [Foosel](https://github.com/foosel), [Eyal](https://github.com/eyal0), [Joshwills](https://github.com/joshwills), and many many others for building the original plugins and the OctoPrint Mixins! 
 I'm standing on the shoulders of giants and doubt I would've been able to start this project without the exsisting code and infrastructure. 
