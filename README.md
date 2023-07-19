@@ -30,11 +30,12 @@ add instructions
 
 ## Future plans
 
-- [ ] Create a setup wizard that helps explain downloading PrusaSlicer and importing profiles
-- [ ] Update Docker development support
+- [ ] More adjustable profile settings
+- [ ] Setup wizard that helps explain extracting and importing PrusaSlicer profiles
+- [ ] Update Docker container for future development support
+- [ ] Support Windows OctoPrint configurations
 - [ ] Make compatible with the latest version of PrusaSlicer (v2.6)
-- [ ] Add more adjustable profile settings
-- [ ] OctoPrint slicing profile overhaul (Use Print/Filament/Printer profiles from official vendor bundles)
+- [ ] OctoPrint slicing profile overhaul (Use Print/Filament/Printer profiles from [official vendor bundles](https://github.com/prusa3d/PrusaSlicer-settings/tree/master/live))
   
 ## More Photos
 
