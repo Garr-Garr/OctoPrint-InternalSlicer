@@ -6,12 +6,8 @@ $(function() {
         self.settingsViewModel = parameters[1];
         self.slicingViewModel = parameters[2];
 
-        // TODO: does this need to be renamed?
-        self.onStartupComplete = function() {
-            self.slicer_command_response_popup = $("#slicer_command_response_popup");
-        };
-
-        // TODO: does this need to be renamed?
+        
+        self.slicer_command_response_popup = $("#slicer_command_response_popup");
         self.slicerCommandResponse = ko.observable("");
     
         self.isDefaultSlicer = ko.observable();
@@ -223,7 +219,15 @@ $(function() {
         
         self.downloadSlicer = function() {
             var url = OctoPrint.getSimpleApiUrl("slicer");
-            OctoPrint.issueCommand(url, "test_download_prusaslicer")
+            OctoPrint.issueCommand(url, "download_prusaslicer_script")
+                .done(function(response) {
+                        //console.log(response);
+            });
+        };
+
+        self.extractSlicer = function() {
+            var url = OctoPrint.getSimpleApiUrl("slicer");
+            OctoPrint.issueCommand(url, "extract_prusaslicer_script")
                 .done(function(response) {
                         //console.log(response);
             });

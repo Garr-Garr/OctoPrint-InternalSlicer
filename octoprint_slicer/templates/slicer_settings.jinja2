@@ -1,7 +1,7 @@
-{# PrusaSlicer (Online) download button #}
 <div id="settings_plugin_slicer_dialog" data-bind="allowBindings: true">
     <h3>{{ _('Raspberry Pi General Settings') }}</h3>
-
+    
+    {# PrusaSlicer (Online) download button - enabled in the master branch #}
     <form class="form-horizontal">
         <div class="control-group">
             <label class="control-label">{{ _('Download PrusaSlicer') }}</label>
@@ -11,9 +11,21 @@
             </div>
         </div>
     </form>
+
+    {# PrusaSlicer (Offline) extraction button - disabled in the master branch
+    <form class="form-horizontal">
+        <div class="control-group">
+            <label class="control-label">{{ _('Extract PrusaSlicer') }}</label>
+            <div class="controls">
+                This will download the latest version of PrusaSlicer and install it in a new directory on your Raspberry Pi.<br><br>
+                <button class="btn" type="button" data-bind="click: function() { $root.extractSlicer(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Extract PrusaSlicer</button>
+            </div>
+        </div>
+    </form>
+    #}
     
     {# Test slicer engine path #}
-    <h3>{{ _('PrusaSlicer Location Settings') }}</h3>
+    <h3>{{ _('Slicer Location Settings') }}</h3>
     <form class="form-horizontal">
       {% include "snippets/settings/slicer/enginePath.jinja2" %}
         <div class="control-group">
@@ -28,6 +40,8 @@
                         case 'no': return '{{ _('PrusaSlicer is not the default slicer') }}';
                         case 'after_save': return '{{ _('PrusaSlicer will be the default slicer after saving') }}';
                     }}()"></span>
+                <br><br>
+                (This will fail if you don't select the "Download PrusaSlicer" button first)<br>
             </div>
         </div>
     </form>
@@ -82,7 +96,7 @@
         <div class="modal-body">
             <form class="form-horizontal">
                 <div class="control-group">
-                    <label class="control-label">{{ _('Profile ini file') }}</label>
+                    <label class="control-label">{{ _('Slicer config.ini file') }}</label>
                     <div class="controls">
                         <div class="input-prepend">
                     <span class="btn fileinput-button">

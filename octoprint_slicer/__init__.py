@@ -69,7 +69,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		# for details.
 		return dict(
 			slicer=dict(
-				displayName="New Slicer",
+				displayName="OctoPrint Slicer",
 				displayVersion=self._plugin_version,
 
 				# version check: github repository
@@ -94,8 +94,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		)
 
 	##~~ StartupPlugin mixin
-	# Copy PrusaSlicer download script to scripts folder on startup
-	# TODO: use hashlib to compare files and only copy if different
 	def on_startup(self, host, port):
 		self._slicer_logger = self._logger
 		# setup our custom logger
@@ -108,7 +106,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 		self._slicer_logger.propagate = False
 
 	def on_after_startup(self):
-		self.get_slicer_default_profile()
+		# Copy PrusaSlicer download script to scripts folder on startup
 		src_files = os.listdir(self._basefolder+"/static/scripts")
 		src = (self._basefolder+"/static/scripts")
 		dest = ("/home/pi/.octoprint/scripts")
@@ -121,6 +119,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 				os.chmod(full_dest_name, 0o755)
 				self._logger.info("Had to copy "+file_name+" to scripts folder.")
 			else:
+				# Check if files are the same, if not overwrite
 				if not self.hashMatches(full_src_name, full_dest_name):
 					shutil.copy(full_src_name, dest)
 					self._logger.info("Had to overwrite {} with new version.".format(file_name))
@@ -129,7 +128,7 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 	##~~ SettingsPlugin mixin
 	def get_settings_defaults(self):
 		return dict(
-			slicer_engine=None,
+			slicer_engine="/home/pi/PrusaSlicer-2.4.2/prusa-slicer",
 			default_profile=None,
 			debug_logging=True
 			#wizard_version=1
@@ -149,13 +148,16 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 	##~~ SimpleApiPlugin mixin
 	def get_api_commands(self):
 		return dict(
-			test_download_prusaslicer=[],
+			download_prusaslicer_script=[],
+			extract_prusaslicer_script=[],
 			test_reset_wizard=[]
 			)
 
 	def on_api_command(self, command, data):
-		if command == 'test_download_prusaslicer':
-			self.download_prusaslicer()
+		if command == 'download_prusaslicer_script':
+			self.downloadPrusaslicer()
+		if command == 'extract_prusaslicer_script':
+			self.extractPrusaslicer()
 		if command == 'test_reset_wizard':
 			self.reset_wizard()
 
@@ -369,6 +371,9 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 
 		# Return error
 		return flask.jsonify(dict(value = "Error"))
+	
+	def is_blueprint_csrf_protected(self):
+		return True
 
 	##~~ EventHandlerPlugin mixin
 	def on_event(self, event, payload):
@@ -400,14 +405,6 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			same_device=True,
 			progress_report=False,
 		)
-
-	def get_slicer_default_profile(self):
-		#path = self._settings.get(["default_profile"])
-		if self._settings.get(["default_profile"]) is None:
-			path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "profiles", "default_MakerGear-M2.profile")
-			# Technicially correct, but doesn't load (/home/pi/oprint/lib/python3.7/site-packages/octoprint_slicer/profiles/default_MakerGear-M2.profile)
-			#self._settings.set(["default_profile"], path)
-		return self.get_slicer_profile(path)
 
 	def get_slicer_profile(self, path):
 		profile_dict, display_name, description = self._load_profile(path)
@@ -578,10 +575,32 @@ class NewSlicerPlugin(octoprint.plugin.SettingsPlugin,
 			raise IOError("Cannot overwrite {path}".format(path=path))
 		Profile.to_slicer_ini(profile, path, display_name=display_name, description=description)
 
+	def extractPrusaslicer(self):
+		self._logger.info("Starting PrusaSlicer v2.4.2 extraction")
+
+		# Get the path to the shell script
+		script_path = "/home/pi/.octoprint/scripts/extractPrusaSlicer.sh"
+
+		# Create a subprocess object
+		proc = subprocess.Popen(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+		# Read all the lines of the output
+		for line in proc.stdout:
+			# Send the output to the logs
+			self._logger.info(line)
+			# Send the output to the client
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = line))
+
+		# Wait for the process to finish
+		if proc.poll() is not None and os.access("/home/pi/PrusaSlicer-2.4.2/prusa-slicer", os.X_OK):
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = "PrusaSlicer has been extracted and is ready for slicing!"))
+			self._logger.info(dict(slicerCommandResponse))
+		else:
+			self._plugin_manager.send_plugin_message("slicer", dict(slicerCommandResponse = "The plugin wasn't able to extract PrusaSlicer to your Raspberry Pi"))
+			self._logger.info(dict(slicerCommandResponse))
 
 
-
-	def download_prusaslicer(self):
+	def downloadPrusaslicer(self):
 		self._logger.info("Starting PrusaSlicer v2.4.2 download")
 
 		# Get the path to the shell script
