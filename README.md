@@ -1,6 +1,6 @@
 # OctoPrint Slicer
 
-<img src="/docs/screenshot1.png" width="600">
+<img src="/docs/readme_1.png" width="600">
 
 ## Plugin features
 - [PrusaSlicer](https://www.prusa3d.com/page/prusaslicer_424/) support
@@ -28,9 +28,9 @@ Install via the bundled OctoPrint Plugin Manager, or manually using this URL:
   
 ## More Photos
 
-<img src="/docs/screenshot2.png" width="600">
-<img src="/docs/screenshot3.png" width="600">
-<img src="/docs/screenshot4.png" width="600">
+<img src="/docs/readme_2.png" width="600">
+<img src="/docs/readme_3.png" width="600">
+<img src="/docs/readme_4.png" width="600">
 
 # Thank you to [Kenneth Jiang](https://github.com/kennethjiang/), [Foosel](https://github.com/foosel), [Eyal](https://github.com/eyal0), [Joshwills](https://github.com/joshwills) ...
 

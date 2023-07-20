@@ -239,7 +239,7 @@ export function OverridesViewModel(parameters, array_keys, enum_keys, item_keys,
         });
 
         // Hacky - Slic3r profiles escape new line to be string '\n'
-        if (self.slicingViewModel.slicer() == 'slicer'){
+        if (self.slicingViewModel.slicer() == 'prusa'){
             _.forEach(['profile.end_gcode', 'profile.start_gcode', 'profile.before_layer_gcode'], function(key) {
                 result[key] = result[key].replace(/\n/g, '\\n');
             });

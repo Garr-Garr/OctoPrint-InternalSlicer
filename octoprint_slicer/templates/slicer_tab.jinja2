@@ -23,6 +23,7 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
   <li class="active"><a data-toggle="tab" href="#general">General</a></li>
   <li><a data-toggle="tab" href="#basic_overrides">Basic</a></li>
   <li><a data-toggle="tab" href="#advanced_overrides">Advanced</a></li>
+  <li><a data-toggle="tab" href="#help">Help</a></li>
   <canvas id="slicer-canvas"></canvas>
 </ul>
 </div>
@@ -110,12 +111,12 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
           <form class="form-horizontal">
               <div class="row">
                   <div class="span3">
-                      {{ slicer_number("temperature", "Temperature", "Temperature", 150, 315, 1, "°C") }}
+                      {{ slicer_number("temperature", "Temperature", "Hotend temperature", 150, 315, 1, "°C") }}
                       {{ slicer_number("print_temperature", "Print temperature", "Print temperature", 150, 315, 1, "°C") }}
                       {{ slicer_number("print_bed_temperature", "Print Bed temperature", "Print bed temperature", 0, 110, 1, "°C") }}
                       {{ slicer_number("bed_temperature", "Bed temperature", "Bed temperature", 0, 110, 1, "°C") }}
                       {{ slicer_number("layer_height", "Height of each layer", "Layer height", 0.01, 0.35, 0.01, "mm") }}
-                      {{ slicer_number("fill_density", "Percentage of the model that is filled in", "Fill density", 0, 100, 1, "%") }}
+                      {{ slicer_number("fill_density", "Percentage of the model that is filled in", "Infill density", 0, 100, 1, "%") }}
                   </div>
                   <div class="span3">
                       {{ slicer_number("wall_thickness", "Shell thickness", "Shell thickness", 0.1, 2, 0.05, "mm") }}
@@ -201,7 +202,26 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
               </div>
           </div>
       </div>
+  </div>
+    <div id="help" class="tab-pane fade">
+        <div class="wrapper">
+            <h3>Please navigate to the GitHub link below to learn how to import your own slicing profiles:</h3>
+            <blockquote>
+                <a href="https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles" target="_blank" rel="noopener noreferrer">https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles</a>
+            </blockquote>
+            <h4>FAQ:</h4>
+            <h5>Downloading PrusaSlicer to OctoPrint</h5>
+            <p>PrusaSlicer will need to be downloaded manually from the OctoPrint settings menu:</p>
+            <ul>
+                <li>Open the OctoPrint Settings menu (wrench icon on the top-right corner of the page)</li>
+                <li>Select the "Slicer" plugin tab</li>
+                <li>Press the "Download PrusaSlicer" button</li>
+                <li>Wait for the download to complete</li>
+                <li>Once finished, press the "Set as default slicer" button</li>
+                <li>Finally, make sure to press the "Save" button to exit the settings menu</li>
+            </ul>
 
+        </div>
   </div>
 </div>
 <div id="slicer">

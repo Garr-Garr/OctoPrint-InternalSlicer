@@ -199,6 +199,19 @@ $(function() {
 				self.slicer_command_response_popup.modal("hide");
 			}
 		};
+        
+        //self.onUserLoggedIn = function() {
+            //self.requestData().done(function() {
+                //console.log("Profile is loaded! :)))");
+            //}).fail(function() {
+                //new PNotify({
+                    //title: 'OctoPrint Slicer',
+                    //text: 'Please navigate to the GitHub link below to learn how to import your own slicing profiles.<br><a href="https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles" target="_blank" rel="noopener noreferrer">Click here</a> ',
+                    //type: 'notice',
+                    //hide: false
+                //});
+            //});
+        //};
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
 			if (plugin != "slicer") {
