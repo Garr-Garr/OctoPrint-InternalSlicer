@@ -5,9 +5,8 @@ $(function() {
         self.loginState = parameters[0];
         self.settingsViewModel = parameters[1];
         self.slicingViewModel = parameters[2];
-
         
-        self.slicer_command_response_popup = $("#slicer_command_response_popup");
+        self.internal_slicer_command_response_popup = $("#internal_slicer_command_response_popup");
         self.slicerCommandResponse = ko.observable("");
     
         self.isDefaultSlicer = ko.observable();
@@ -31,15 +30,15 @@ $(function() {
         self.profileDescription = ko.observable();
         self.profileAllowOverwrite = ko.observable(true);
         
-        self.uploadElement = $("#settings-slicer-import");
-        self.uploadButton = $("#settings-slicer-import-start");
+        self.uploadElement = $("#settings-internal_slicer-import");
+        self.uploadButton = $("#settings-internal_slicer-import-start");
         self.uploadData = null;
         self.uploadButton.on("click", function() {
             if (self.uploadData) {
                 self.uploadData.submit();
             }
         });
-
+        // wizard testing
         self.showNextDiv = function (data) {
             var div1 = document.getElementById("test1");
             var div2 = document.getElementById("test2");
@@ -58,7 +57,7 @@ $(function() {
         
         // Settings menu profile list
         self.profiles = new ItemListHelper(
-            "plugin_slicer_profiles",
+            "plugin_internal_slicer_profiles",
             {
                 "id": function(a, b) {
                     if (a["key"].toLocaleLowerCase() < b["key"].toLocaleLowerCase()) return -1;
@@ -141,7 +140,7 @@ $(function() {
             done: function(e, data) {
                 self.clearUpload();
 
-                $("#settings_plugin_slicer_import").modal("hide");
+                $("#settings_plugin_internal_slicer_import").modal("hide");
                 self.requestData();
                 self.slicingViewModel.requestData();
             }
@@ -194,31 +193,18 @@ $(function() {
         };
         
         self.showSlicerCommandResponse = function(input){
-			self.slicer_command_response_popup.modal({keyboard: false, backdrop: "static", show: true});
+			self.internal_slicer_command_response_popup.modal({keyboard: false, backdrop: "static", show: true});
 			if (input === "hide"){
-				self.slicer_command_response_popup.modal("hide");
+				self.internal_slicer_command_response_popup.modal("hide");
 			}
 		};
-        
-        //self.onUserLoggedIn = function() {
-            //self.requestData().done(function() {
-                //console.log("Profile is loaded! :)))");
-            //}).fail(function() {
-                //new PNotify({
-                    //title: 'OctoPrint Slicer',
-                    //text: 'Please navigate to the GitHub link below to learn how to import your own slicing profiles.<br><a href="https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles" target="_blank" rel="noopener noreferrer">Click here</a> ',
-                    //type: 'notice',
-                    //hide: false
-                //});
-            //});
-        //};
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
-			if (plugin != "slicer") {
+			if (plugin != "internal_slicer") {
 				return;
 			}
             if (data.slicerCommandResponse !== undefined ){
-                console.log(data.slicerCommandResponse);
+                //console.log(data.slicerCommandResponse);
                 
                 self.slicerCommandResponse(self.slicerCommandResponse() + data.slicerCommandResponse.toString());
 
@@ -229,25 +215,48 @@ $(function() {
                 self.slicerCommandResponseText2.scrollTop(self.slicerCommandResponseText2[0].scrollHeight);
             }
         };
+
+        if(data.type == "popup") {
+            new PNotify({
+                title: 'Internal Slicer',
+                text: data.msg,
+                });
+        }
         
         self.downloadSlicer = function() {
-            var url = OctoPrint.getSimpleApiUrl("slicer");
+            var url = OctoPrint.getSimpleApiUrl("internal_slicer");
             OctoPrint.issueCommand(url, "download_prusaslicer_script")
                 .done(function(response) {
                         //console.log(response);
             });
         };
 
+        self.installCPULimit = function() {
+            var url = OctoPrint.getSimpleApiUrl("internal_slicer");
+            OctoPrint.issueCommand(url, "installCPULimit")
+                .done(function(response) {
+                        //console.log(response);
+            });
+        };
+
         self.extractSlicer = function() {
-            var url = OctoPrint.getSimpleApiUrl("slicer");
+            var url = OctoPrint.getSimpleApiUrl("internal_slicer");
             OctoPrint.issueCommand(url, "extract_prusaslicer_script")
                 .done(function(response) {
                         //console.log(response);
             });
         };
 
+        self.cancel_slice = function() {
+            var url = OctoPrint.getSimpleApiUrl("internal_slicer");
+            OctoPrint.issueCommand(url, "cancel_slice")
+                .done(function(response) {
+                        //console.log(response);
+            });
+        };
+
         self.resetWizard = function() {
-            var url = OctoPrint.getSimpleApiUrl("slicer");
+            var url = OctoPrint.getSimpleApiUrl("internal_slicer");
             OctoPrint.issueCommand(url, "test_reset_wizard")
                 .done(function(response) {
                         //console.log(response);
@@ -256,7 +265,7 @@ $(function() {
 
         self.showImportProfileDialog = function() {
             self.clearUpload();
-            $("#settings_plugin_slicer_import").modal("show");
+            $("#settings_plugin_internal_slicer_import").modal("show");
         };
 
         self.setAsDefaultSlicer = function() {
@@ -267,7 +276,7 @@ $(function() {
         };
 
         self.testEnginePath = function() {
-            OctoPrint.util.testExecutable(self.settings.plugins.slicer.slicer_engine())
+            OctoPrint.util.testExecutable(self.settings.plugins.internal_slicer.slicer_engine())
                 .done(function(response) {
                     if (!response.result) {
                         if (!response.exists) {
@@ -340,8 +349,8 @@ $(function() {
         // e.g. loginStateViewModel, settingsViewModel, ...
         [ "loginStateViewModel", "settingsViewModel", "slicingViewModel"],
     
-        // e.g. #settings_plugin_slicer, #tab_plugin_slicer, ...
-        [ "#settings_plugin_slicer_dialog", "#slicer_command_response_popup" ]
+        // e.g. #settings_plugin_internal_slicer, #tab_plugin_internal_slicer, ... "#internal_slicer_command_response_popup"
+        [ "#settings_plugin_internal_slicer_dialog"]
     ]);
 
 });

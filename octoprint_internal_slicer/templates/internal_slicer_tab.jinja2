@@ -1,7 +1,3 @@
-<!-- start Mixpanel --><script type="text/javascript">(function(e,a){if(!a.__SV){var b=window;try{var c,l,i,j=b.location,g=j.hash;c=function(a,b){return(l=a.match(RegExp(b+"=([^&]*)")))?l[1]:null};g&&c(g,"state")&&(i=JSON.parse(decodeURIComponent(c(g,"state"))),"mpeditor"===i.action&&(b.sessionStorage.setItem("_mpcehash",g),history.replaceState(i.desiredHash||"",e.title,j.pathname+j.search)))}catch(m){}var k,h;window.mixpanel=a;a._i=[];a.init=function(b,c,f){function e(b,a){var c=a.split(".");2==c.length&&(b=b[c[0]],a=c[1]);b[a]=function(){b.push([a].concat(Array.prototype.slice.call(arguments,
-0)))}}var d=a;"undefined"!==typeof f?d=a[f]=[]:f="mixpanel";d.people=d.people||[];d.toString=function(b){var a="mixpanel";"mixpanel"!==f&&(a+="."+f);b||(a+=" (stub)");return a};d.people.toString=function(){return d.toString(1)+".people (stub)"};k="disable time_event track track_pageview track_links track_forms register register_once alias unregister identify name_tag set_config reset people.set people.set_once people.increment people.append people.union people.track_charge people.clear_charges people.delete_user".split(" ");
-for(h=0;h<k.length;h++)e(d,k[h]);a._i.push([b,c,f])};a.__SV=1.2;b=e.createElement("script");b.type="text/javascript";b.async=!0;b.src="undefined"!==typeof MIXPANEL_CUSTOM_LIB_URL?MIXPANEL_CUSTOM_LIB_URL:"file:"===e.location.protocol&&"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js".match(/^\/\//)?"https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js":"//cdn.mxpnl.com/libs/mixpanel-2-latest.min.js";c=e.getElementsByTagName("script")[0];c.parentNode.insertBefore(b,c)}})(document,window.mixpanel||[]);
-mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
 <div class="translucent-blocker">
     <div class="sk-cube-grid">
       <div class="sk-cube sk-cube1"></div>
@@ -15,24 +11,29 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
       <div class="sk-cube sk-cube9"></div>
     </div>
 </div>
+
 <div id="slicer-viewport">
+
 </div>
 <br />
+
 <div>
-<ul class="nav nav-tabs">
-  <li class="active"><a data-toggle="tab" href="#general">General</a></li>
-  <li><a data-toggle="tab" href="#basic_overrides">Basic</a></li>
-  <li><a data-toggle="tab" href="#advanced_overrides">Advanced</a></li>
-  <li><a data-toggle="tab" href="#help">Help</a></li>
-  <canvas id="slicer-canvas"></canvas>
-</ul>
+    <ul class="nav nav-tabs">
+    <li class="active"><a data-toggle="tab" href="#general">General</a></li>
+    <li><a data-toggle="tab" href="#basic_overrides">Basic</a></li>
+    <li><a data-toggle="tab" href="#advanced_overrides">Advanced</a></li>
+    <li><a data-toggle="tab" href="#help">Help</a></li>
+    <canvas id="slicer-canvas"></canvas>
+    </ul>
 </div>
+
 {%- macro slicer_setting(setting, title, label, callback) -%}
   <div title="{{ title }}" class="input-append" data-bind="visible: !_.isUndefined($data['profile.{{ setting }}']())">
     <label for="slicer_input_{{ setting }}" class="control-label">{{ label }}</label>
     {{ caller() }}
   </div>
 {%- endmacro %}
+
 {%- macro slicer_checkbox(setting, title, label) -%}
   {% call slicer_setting(setting, title, label) -%}
     <div class="controls checkbox">
@@ -40,6 +41,7 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
     </div>
   {%- endcall %}
 {%- endmacro %}
+
 {%- macro slicer_select(setting, title, label) -%}
   {% call slicer_setting(setting, title, label) -%}
     <div class="controls">
@@ -47,6 +49,7 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
     </div>
   {%- endcall %}
 {%- endmacro %}
+
 {%- macro slicer_number(setting, title, label, min, max, step, add_on) -%}
   {% call slicer_setting(setting, title, label) -%}
     <div class="controls">
@@ -60,11 +63,12 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
     </div>
   {%- endcall %}
 {%- endmacro %}
+
 <div class="tab-content">
   <div id="general" class="tab-pane fade in active">
     <div id="slicing-settings">
         <form class="form-vertical">
-            <div class="row">
+            <div class="row" id="testing_custom_settings_css">
                 <div class="span3">
                     <div class="control-group">
                         <label for="slicer_Slicer" class="control-label">{{ _('Slicer') }}</label>
@@ -106,14 +110,13 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
         </form>
     </div>
   </div>
+
   <div id="basic_overrides" class="tab-pane fade">
       <div class="wrapper">
           <form class="form-horizontal">
               <div class="row">
                   <div class="span3">
-                      {{ slicer_number("temperature", "Temperature", "Hotend temperature", 150, 315, 1, "°C") }}
-                      {{ slicer_number("print_temperature", "Print temperature", "Print temperature", 150, 315, 1, "°C") }}
-                      {{ slicer_number("print_bed_temperature", "Print Bed temperature", "Print bed temperature", 0, 110, 1, "°C") }}
+                      {{ slicer_number("temperature", "Temperature", "Hotend Temperature", 150, 315, 1, "°C") }}
                       {{ slicer_number("bed_temperature", "Bed temperature", "Bed temperature", 0, 110, 1, "°C") }}
                       {{ slicer_number("layer_height", "Height of each layer", "Layer height", 0.01, 0.35, 0.01, "mm") }}
                       {{ slicer_number("fill_density", "Percentage of the model that is filled in", "Infill density", 0, 100, 1, "%") }}
@@ -131,26 +134,19 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
           </form>
       </div>
   </div>
+
   <div id="advanced_overrides" class="tab-pane fade">
       <div class="wrapper">
           <form class="form-horizontal">
               <div class="row">
                   <div class="span3">
-                      {{ slicer_number("travel_speed", "Travel speed while not printing", "Travel speed", 0, 300, 1, "mm/s") }}
-                      {{ slicer_number("infill_speed", "Speed while printing infill", "Infill speed", 0, 300, 1, "mm/s") }}
-                      {{ slicer_number("outer_shell_speed", "Speed while printing outer shell", "Outer shell speed", 0, 300, 1, "mm/s") }}
-                      {{ slicer_number("inner_shell_speed", "Speed while printing inner shell", "Inner shell speed", 0, 300, 1, "mm/s") }}
-                      {{ slicer_number("bottom_layer_speed", "Speed while printing Bottom layer", "Bottom layer speed", 0, 300, 1, "mm/s") }}
-                      {{ slicer_checkbox("retraction_enable", "Enable filament retraction", "Retraction") }}
-                      <div data-bind="visible: $data['profile.retraction_enable']">
-                          {{ slicer_number("retraction_speed", "Filament retraction speed", "Retraction speed", 0, 300, 1, "mm/s") }}
-                          {{ slicer_number("retraction_amount", "Filament retraction distance", "Retraction distance", 0, 30, 0.1, "mm") }}
-                      </div>
-                      {{ slicer_number("first_layer_temperature", "First layer temperature", "1st layer temperature", 0, 315, 1, "°C") }}
-                      {{ slicer_number("first_layer_bed_temperature", "First layer bed temperature", "1st layer bed temperature", 0, 110, 1, "°C") }}
-                      {{ slicer_number("brim_width", "Brim width", "Brim width", 0, 30, 0.1, "mm") }}
+                      {{ slicer_number("travel_speed", "Travel speed while not printing", "Travel Speed", 0, 300, 1, "mm/s") }}
+                      {{ slicer_number("infill_speed", "Speed while printing infill", "Infill Speed", 0, 300, 1, "mm/s") }}
+                      {{ slicer_number("first_layer_temperature", "First layer temperature", "First Layer Temperature", 0, 315, 1, "°C") }}
+                      {{ slicer_number("first_layer_bed_temperature", "First layer bed temperature", "First Layer Bed Temperature", 0, 110, 1, "°C") }}
+                      {{ slicer_number("brim_width", "Brim width", "Brim Width", 0, 30, 0.1, "mm") }}
                       {{ slicer_number("skirts", "Skirt (mininum)", "Skirt (min)", 0, 100, 1, "loops") }}
-                      {{ slicer_number("min_skirt_length", "Skirt length (mininum)", "Skirt length (min)", min="0", step="0.1", add_on="mm") }}
+                      {{ slicer_number("min_skirt_length", "Skirt length (mininum)", "Skirt Length (min)", min="0", step="0.1", add_on="mm") }}
                   </div>
                   <div class="span3">
                       {{ slicer_select("platform_adhesion", "Platform adhesion type", "Adhesion") }}
@@ -158,21 +154,14 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
                         {{ slicer_number("brim_line_count", "Brim line count", "Brim line count", min=0, step=1) }}
                       </div>
                       {{ slicer_number("filament_diameter", "Filament Diameter", "Filament", 0, 100, 0.01, "mm") }}
-                      {{ slicer_number("filament_flow", "Filament Flow", "Filament Flow", 0, 200, 0.1, "%") }}
-                      {{ slicer_checkbox("fan_enabled", "Enable cooling fan", "Cooling fan") }}
-                      <div data-bind="visible: $data['profile.fan_enabled']">
-                          {{ slicer_number("fan_full_height", "Full fan on height", "Full at height", 0, 2000, 0.1, "mm") }}
-                          {{ slicer_number("fan_speed_max", "Maximum fan speed", "Max speed", 0, 100, 1, "%") }}
-                          {{ slicer_number("fan_speed", "Minimum fan speed", "Min speed", 0, 100, 1, "%") }}
-                      </div>
                       {{ slicer_number("extrusion_multiplier", "Extrusion Multiplier", "Flow Multiplier", 0, 2, 0.001) }}
-                      {{ slicer_checkbox("cooling", "Enable auto cooling", "Cooling") }}
+                      {{ slicer_checkbox("cooling", "Enable auto cooling", "Part Cooling Fan") }}
                       {{ slicer_checkbox("fan_always_on", "Keep fan always on", "Fan always on") }}
                   </div>
               </div>
           </form>
       </div>
-      <div class="row">
+      <div class="row" id="collapse_testing">
           <div class="span7">
               <div title="GCode inserted at the beginning" class="input-append">
                   <label for="slicer_Start_GCode">Start GCode:</label>
@@ -203,28 +192,31 @@ mixpanel.init("ade6b64c4db77172707571c1f9cfcebe");</script><!-- end Mixpanel -->
           </div>
       </div>
   </div>
-    <div id="help" class="tab-pane fade">
-        <div class="wrapper">
-            <h3>Please navigate to the GitHub link below to learn how to import your own slicing profiles:</h3>
-            <blockquote>
-                <a href="https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles" target="_blank" rel="noopener noreferrer">https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles</a>
-            </blockquote>
-            <h4>FAQ:</h4>
-            <h5>Downloading PrusaSlicer to OctoPrint</h5>
-            <p>PrusaSlicer will need to be downloaded manually from the OctoPrint settings menu:</p>
-            <ul>
-                <li>Open the OctoPrint Settings menu (wrench icon on the top-right corner of the page)</li>
-                <li>Select the "Slicer" plugin tab</li>
-                <li>Press the "Download PrusaSlicer" button</li>
-                <li>Wait for the download to complete</li>
-                <li>Once finished, press the "Set as default slicer" button</li>
-                <li>Finally, make sure to press the "Save" button to exit the settings menu</li>
-            </ul>
 
-        </div>
+  <div id="help" class="tab-pane fade">
+    <div class="wrapper">
+        <h3>Please navigate to the GitHub link below to learn how to import your own slicing profiles:</h3>
+        <blockquote>
+            <a href="https://github.com/Garr-R/OctoPrint-InternalSlicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles" target="_blank" rel="noopener noreferrer">https://github.com/Garr-R/OctoPrint-InternalSlicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles</a>
+        </blockquote>
+        <h4>FAQ:</h4>
+        <h5>Downloading PrusaSlicer to OctoPrint</h5>
+        <p>PrusaSlicer will need to be downloaded manually from the OctoPrint settings menu:</p>
+        <ul>
+            <li>Open the OctoPrint Settings menu (wrench icon on the top-right corner of the page)</li>
+            <li>Select the "Slicer" plugin tab</li>
+            <li>Press the "Download PrusaSlicer" button</li>
+            <li>Wait for the download to complete</li>
+            <li>Once finished, press the "Set as default slicer" button</li>
+            <li>Finally, make sure to press the "Save" button to exit the settings menu</li>
+        </ul>
+        <h5>How long should it take to slice?</h5>
+        <p>This depends on a couple of factors:</p>
+    </div>
   </div>
 </div>
-<div id="slicer">
+
+<div id="internal_slicer">
     <button class="btn btn-primary btn-block" data-bind="click: $data.slice, enable: $data.slicingViewModel.enableSliceButton() && !slicing(), text: (slicing() ? 'Slicing...' : ($data.slicingViewModel.enableSliceButton() ? 'Slice it!' : 'Slicing disabled - currently printing or no model loaded.'))">
         <i class="icon-spinner icon-spin" data-bind="visible: slicing()"></i>
     </button>
