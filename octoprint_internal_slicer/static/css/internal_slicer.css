@@ -19,11 +19,17 @@
 }
 
 #testing_custom_settings_css {
-    font-size: 10px;
+    display: grid;
+    justify-content: center;
+    text-align: left;
 }
 
-#collapse_testing {
-    
+#gcode-scripts-row {
+    margin-left: 0px;
+}
+
+.form-horizontal .control-label {
+	text-align: left;
 }
 
 #slicer-viewport {

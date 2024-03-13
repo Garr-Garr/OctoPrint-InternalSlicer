@@ -61,6 +61,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		self._slicing_commands_mutex = threading.Lock()
 		self._cancelled_jobs = []
 		self._cancelled_jobs_mutex = threading.Lock()
+		self.p = None
 
 	def get_update_information(self):
 		# Define the configuration for your plugin to use with the Software Update
@@ -137,7 +138,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	##~~ SettingsPlugin mixin
 	def get_settings_defaults(self):
 		return dict(
-			slicer_engine="/home/pi/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage",
+			slicer_engine="/home/pi/slicers/PrusaSlicer-version_2.7.2-armhf.AppImage",
 			default_profile=None,
 			debug_logging=True,
 			enableGUI = True,
@@ -213,12 +214,13 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	def on_api_command(self, command, data):
 		if command == 'download_prusaslicer_script':
 			self.downloadPrusaslicer()
-		# if command == 'cancel_slice':
-		# 	self.test()
+		if command == 'cancel_slice':
+			self.cancel_slicing()
 		if command == 'test_reset_wizard':
 			self.reset_wizard()
 		if command == 'installCPULimit':
 			self.installCPULimit()
+
 
 
 	##~~ WizardPlugin mixin
@@ -309,192 +311,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		r = flask.make_response(flask.jsonify(result), 201)
 		r.headers["Location"] = result["resource"]
 		return r
-
-	# Upload 3D model event
-	@octoprint.plugin.BlueprintPlugin.route("/upload", methods=["POST"])
-	def upload(self) :
-		# Check if uploading everything
-		if "Slicer Profile Name" in flask.request.values and "Slicer Name" in flask.request.values and "Printer Profile Name" in flask.request.values and "Slicer Profile Content" in flask.request.values and "After Slicing Action" in flask.request.values :
-
-			# Check if printing after slicing and a printer isn't connected
-			if flask.request.values["After Slicing Action"] != "none" and self._printer.is_closed_or_error() :
-
-				# Return error
-				return flask.jsonify(dict(value = "Error"))
-
-			# Set if model was modified
-			modelModified = "Model Name" in flask.request.values and "Model Location" in flask.request.values and "Model Path" in flask.request.values and "Model Center X" in flask.request.values and "Model Center Y" in flask.request.values
-
-			# Check if slicer profile, model name, or model path contain path traversal
-			if "../" in flask.request.values["Slicer Profile Name"] or (modelModified and ("../" in flask.request.values["Model Name"] or "../" in flask.request.values["Model Path"])) :
-
-				# Return error
-				return flask.jsonify(dict(value = "Error"))
-
-			# Check if model location is invalid
-			if modelModified and (flask.request.values["Model Location"] != "local" and flask.request.values["Model Location"] != "sdcard") :
-
-				# Return error
-				return flask.jsonify(dict(value = "Error"))
-
-			# Set model location
-			if modelModified :
-
-				if flask.request.values["Model Location"] == "local" :
-					modelLocation = self._file_manager.path_on_disk(octoprint.filemanager.destinations.FileDestinations.LOCAL, flask.request.values["Model Path"] + flask.request.values["Model Name"]).replace('\\', '/')
-				elif flask.request.values["Model Location"] == "sdcard" :
-					modelLocation = self._file_manager.path_on_disk(octoprint.filemanager.destinations.FileDestinations.SDCARD, flask.request.values["Model Path"] + flask.request.values["Model Name"]).replace('\\', '/')
-
-			# Check if slicer profile, model, or printer profile doesn't exist
-			if (modelModified and not os.path.isfile(modelLocation)) or not self._printer_profile_manager.exists(flask.request.values["Printer Profile Name"]) :
-
-				# Return error
-				return flask.jsonify(dict(value = "Error"))
-
-			# Move original model to temporary location
-			if modelModified :
-				fd, modelTemp = tempfile.mkstemp()
-				os.close(fd)
-				shutil.copy(modelLocation, modelTemp)
-
-			fd, temp = tempfile.mkstemp()
-			os.close(fd)
-
-			output = open(temp, "wb")
-			for character in flask.request.values["Slicer Profile Content"] :
-				output.write(chr(ord(character)))
-			output.close()
-
-			self.tempProfileName = "temp-" + str(uuid.uuid1())
-			if flask.request.values["Slicer Name"] == "prusa" :
-				self.convertSlicerToProfile(temp, '', '', '')
-			elif flask.request.values["Slicer Name"] == "slic3r" :
-				self.convertSlicerToProfile(temp, '', '', '')
-			elif flask.request.values["Slicer Name"] == "cura" :
-				self.convertCuraToProfile(temp, self.tempProfileName, self.tempProfileName, '')
-
-			# Remove temporary file
-			os.remove(temp)
-
-			# Get printer profile
-			printerProfile = self._printer_profile_manager.get(flask.request.values["Printer Profile Name"])
-
-			# Save slicer changes
-			self.slicerChanges = {
-				"Printer Profile Content": copy.deepcopy(printerProfile)
-			}
-
-			# Otherwise check if slicer is Slic3r
-			if flask.request.values["Slicer Name"] == "prusa" or "slic3r" :
-
-				# Change printer profile
-				search = re.findall("bed_size\s*?=\s*?(\d+.?\d*)\s*?,\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["volume"]["width"] = float(search[0][0])
-					printerProfile["volume"]["depth"] = float(search[0][1])
-
-				search = re.findall("nozzle_diameter\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["extruder"]["nozzleDiameter"] = float(search[0])
-
-			elif flask.request.values["Slicer Name"] == "cura" :
-				
-				search = re.findall("extruder_amount\s*?=\s*?(\d+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["extruder"]["count"] = int(search[0])
-
-				search = re.findall("has_heated_bed\s*?=\s*?(\S+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					if str(search[0]).lower() == "true" :
-						printerProfile["heatedBed"] = True
-					else :
-						printerProfile["heatedBed"] = False
-				
-				search = re.findall("machine_width\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["volume"]["width"] = float(search[0])
-
-				search = re.findall("machine_height\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["volume"]["height"] = float(search[0])
-
-				search = re.findall("machine_depth\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["volume"]["depth"] = float(search[0])
-
-				search = re.findall("machine_shape\s*?=\s*?(\S+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					if str(search[0]).lower() == "circular" :
-						printerProfile["volume"]["formFactor"] = "circular"
-					else :
-						printerProfile["volume"]["formFactor"] = "rectangular"
-
-				search = re.findall("nozzle_size\s*?=\s*?(\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					printerProfile["extruder"]["nozzleDiameter"] = float(search[0])
-				
-				search = re.findall("machine_center_is_zero\s*?=\s*?(\S+)", flask.request.values["Slicer Profile Content"])
-				if len(search) :
-					if str(search[0]).lower() == "true" :
-						printerProfile["volume"]["formFactor"] = "circular"
-						printerProfile["volume"]["origin"] = "center"
-					else :
-						printerProfile["volume"]["formFactor"] = "rectangular"
-						printerProfile["volume"]["origin"] = "lowerleft"
-
-				search = re.findall("extruder_offset_(x|y)(\d)\s*?=\s*?(-?\d+.?\d*)", flask.request.values["Slicer Profile Content"])
-				vectors = [Vector(0,0)] * printerProfile["extruder"]["count"]
-
-				for offset in search :
-					if offset[0] == "x" :
-						vectors[int(offset[1])].x = float(offset[2])
-					else :
-						vectors[int(offset[1])].y = float(offset[2])
-
-				index = 0
-				while index < len(vectors) :
-					value = (vectors[index].x, vectors[index].y)
-					printerProfile["extruder"]["offsets"][index] = value
-					index += 1
-
-			# Check if modifying model
-			if modelModified :
-
-				# Save model locations
-				self.slicerChanges["Model Location"] = modelLocation
-				self.slicerChanges["Model Temporary"] = modelTemp
-
-				# Adjust printer profile so that its center is equal to the model's center
-				printerProfile["volume"]["width"] += float(flask.request.values["Model Center X"]) * 2
-				printerProfile["volume"]["depth"] += float(flask.request.values["Model Center Y"]) * 2
-
-			# Otherwise check if using a Micro 3D printer
-			elif not self._settings.get_boolean(["NotUsingAMicro3DPrinter"]) :
-
-				# Set extruder center
-				extruderCenterX = (self.bedLowMaxX + self.bedLowMinX) / 2
-				extruderCenterY = (self.bedLowMaxY + self.bedLowMinY + 14.0) / 2
-
-				# Adjust printer profile so that its center is equal to the model's center
-				printerProfile["volume"]["width"] += (-(extruderCenterX - (self.bedLowMaxX + self.bedLowMinX) / 2) + self.bedLowMinX) * 2
-				printerProfile["volume"]["depth"] += (extruderCenterY - (self.bedLowMaxY + self.bedLowMinY) / 2 + self.bedLowMinY) * 2
-
-			# Apply printer profile changes
-			self._printer_profile_manager.save(printerProfile, True)
-
-			fd, destFile = tempfile.mkstemp()
-			os.close(fd)
-			self._slicing_manager.slice(flask.request.values["Slicer Name"],
-					modelLocation, #source path
-					destFile,
-					self.tempProfileName,
-					self)
-
-			# Return ok
-			return flask.jsonify(dict(value = "OK"))
-
-		# Return error
-		return flask.jsonify(dict(value = "Error"))
 	
 	def is_blueprint_csrf_protected(self):
 		return True
@@ -502,14 +318,15 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	##~~ EventHandlerPlugin mixin
 	def on_event(self, event, payload):
 		# check if event is slicing started
+		self._logger.info("test 1")
 		if event == octoprint.events.Events.SLICING_STARTED :
-
+			self._logger.info("test 2")
 			# Set processing slice
 			self.processingSlice = True
 
 		# Otherwise check if event is slicing done, cancelled, or failed
 		elif event == octoprint.events.Events.SLICING_DONE or event == octoprint.events.Events.SLICING_CANCELLED or event == octoprint.events.Events.SLICING_FAILED :
-
+			self._logger.info("test 3")
 			# Clear processing slice
 			self.processingSlice = False
 
@@ -564,22 +381,21 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			machinecode_path = path + ".gcode"
     
 		if position and isinstance(position, dict) and "x" in position and "y" in position:
-			posX = position["x"]
-			posY = position["y"]
-		elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center" :
+			posX = int(position["x"])
+			posY = int(position["y"])
+		elif printer_profile["volume"]["formFactor"] == "circular" or printer_profile["volume"]["origin"] == "center":
 			posX = 0
 			posY = 0
 		else:
-			posX = printer_profile["volume"]["width"] / 2.0
-			posY = printer_profile["volume"]["depth"] / 2.0
-    
+			posX = int(printer_profile["volume"]["width"] / 2.0)
+			posY = int(printer_profile["volume"]["depth"] / 2.0)
 		self._logger.info("### Slicing %s to %s using profile stored at %s" % (model_path, machinecode_path, profile_path))
 
 		executable = normalize_path(self._settings.get(["slicer_engine"]))
 		if not executable:
 			return False, "Path to Slicer is not configured "
 
-		args = ['"%s"' % executable, '--export-gcode', '--load', '"%s"' % profile_path,   '-o', '"%s"' % machinecode_path, '"%s"' % model_path]
+		args = ['"%s"' % executable, '--export-gcode', '--load', '"%s"' % profile_path, '-o', '"%s"' % machinecode_path, '"%s"' % model_path, '--center', '%s,%s' % (posX, posY)]
 		env = {}
 
 		import sarge
@@ -622,8 +438,8 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 								self._logger.info("Bed temp: 0, not setting bed temperature")
 
 			# custom alert testing
-			self._plugin_manager.send_plugin_message(self._identifier, dict(alert="popup", msg="This is a popup message"))
-			self._plugin_manager.send_plugin_message(self._identifier, dict(alert="warning", msg="Custom warning message"))
+			# self._plugin_manager.send_plugin_message(self._identifier, dict(alert="popup", msg="This is a popup message"))
+			# self._plugin_manager.send_plugin_message(self._identifier, dict(alert="warning", msg="Custom warning message"))
 
 			last_error=""
 			
@@ -704,15 +520,16 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 					del self._slicing_commands[machinecode_path]
 			self._logger.info("-" * 40)
 
-	def cancel_slicing(self, machinecode_path):
+	def cancel_slicing(self): # , machinecode_path
 		#maybe add a process kill command here
-
-		with self._slicing_commands_mutex:
-			if machinecode_path in self._slicing_commands:
-				with self._cancelled_jobs_mutex:
-					self._cancelled_jobs.add(machinecode_path)
-				self._slicing_commands[machinecode_path].terminate()
-				self._logger.info("Cancelled slicing of %s" % machinecode_path)
+		self.p.terminate()
+		# with self._slicing_commands_mutex:
+		# 	if machinecode_path in self._slicing_commands:
+		# 		with self._cancelled_jobs_mutex:
+		# 			self._cancelled_jobs.add(machinecode_path)
+		# 		self._slicing_commands[machinecode_path].terminate()
+		# 		self.p.terminate()
+		# 		self._logger.info("Cancelled slicing of %s" % machinecode_path)
 
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slicer_ini(path)
@@ -748,17 +565,21 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			self._settings.set_boolean(["cpuLimitInstalled"], True)
 			self._settings.save()
 			
+	def cancel_testing(self):
+		if self.p:
+			self.p.terminate()
 
 	def downloadPrusaslicer(self):
-		self._logger.info("Starting PrusaSlicer v2.6.1 download")
+		self._logger.info("Starting PrusaSlicer v2.7.2 download")
 
-		if os.access("/home/pi/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage", os.X_OK):
+		# If PrusaSlicer
+		if os.access("/home/pi/slicers/PrusaSlicer-version_2.7.2-armhf.AppImage", os.X_OK):
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "PrusaSlicer is already installed!"))
 			self._logger.info("PrusaSlicer is already installed!")
 			return
 		
 		# Get the path to the shell script
-		script_path = "/home/pi/.octoprint/scripts/downloadPrusaSlicer.sh"
+		script_path = (self._basefolder+"/static/scripts/downloadPrusaSlicer.sh")
 
 		# Create a subprocess object
 		proc = subprocess.Popen(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -771,7 +592,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = line))
 
 		# Wait for the process to finish
-		if proc.poll() is not None and os.access("/home/pi/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage", os.X_OK):
+		if proc.poll() is not None and os.access("/home/pi/slicers/PrusaSlicer-version_2.7.2-armhf.AppImage", os.X_OK):
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "PrusaSlicer has been installed!"))
 			self._logger.info("PrusaSlicer has been installed!")
 		else:
@@ -854,6 +675,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		# Close output
 		output.close()
 
+	# Broken
 	def restoreFiles(self) :
 		# Check if slicer was changed
 		if self.slicerChanges is not None :

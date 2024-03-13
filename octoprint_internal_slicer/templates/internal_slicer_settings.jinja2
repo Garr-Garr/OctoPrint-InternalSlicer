@@ -7,7 +7,7 @@
         <div class="control-group">
             <label class="control-label">{{ _('Download PrusaSlicer') }}</label>
             <div class="controls">
-                This will download the latest available version of PrusaSlicer (v2.6) and install it in a new directory on your Raspberry Pi.<br><br>
+                This will download the latest available version of PrusaSlicer (v2.7.2) and install it in a new directory on your Raspberry Pi.<br><br>
                 <button class="btn" type="button" data-bind="click: function() { $root.downloadSlicer(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Download PrusaSlicer</button>
             </div>
             <label class="control-label">{{ _('Enable Logging') }}</label>
@@ -30,7 +30,7 @@
             <label class="control-label">{{ _('Enable Auto Bed Temp') }}</label>
             <div class="controls">
                 <label class="checkbox">
-                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.enableAutoBedTemp"> {{ _('Enable this if you want to set the bed temperature automatically') }}
+                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.enableAutoBedTemp"> {{ _('Enable this option if you want the plugin to automatically set the bed temperature during slicing.') }}
                 </label>
             </div>
         </div>
@@ -77,7 +77,7 @@
             </div>
         </div>
     </form>
-    </ul>    
+    </ul>
 
     {# Imported profiles  table #}
     <h3>{{ _('Profiles') }}</h3>

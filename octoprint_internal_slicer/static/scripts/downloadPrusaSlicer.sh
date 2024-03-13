@@ -1,4 +1,4 @@
-# This script is to download PrusaSlicer v2.6.1 on OctoPi OS and then install CPULimit to limit the CPU usage of PrusaSlicer
+# This script is to download PrusaSlicer v2.7.2 on OctoPi OS and then install CPULimit to limit the CPU usage of PrusaSlicer
 
 # Move to the home directory
 cd /home/pi
@@ -7,10 +7,10 @@ cd /home/pi
 mkdir /home/pi/slicers
 
 # Download PrusaSlicer
-wget -P /home/pi/slicers https://github.com/Garr-R/PrusaSlicer-ARM.AppImage/releases/download/v2.6.1/PrusaSlicer-version_2.6.1-armhf.AppImage
+wget -P /home/pi/slicers https://github.com/Garr-R/PrusaSlicer-ARM.AppImage/releases/download/v2.7.2/PrusaSlicer-version_2.7.2-armhf.AppImage
 
 # Change permissions to the PrusaSlicer program
-chmod a+x /home/pi/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage
+chmod a+x /home/pi/slicers/PrusaSlicer-version_2.7.2-armhf.AppImage
 
 # Download and install CPULimit
 sudo apt-get -fqy install cpulimit

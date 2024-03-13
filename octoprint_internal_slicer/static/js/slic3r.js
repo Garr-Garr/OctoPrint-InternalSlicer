@@ -39,21 +39,21 @@ $(function() {
             }
         });
         // wizard testing
-        self.showNextDiv = function (data) {
-            var div1 = document.getElementById("test1");
-            var div2 = document.getElementById("test2");
-            var div3 = document.getElementById("test3");
+        // self.showNextDiv = function (data) {
+        //     var div1 = document.getElementById("test1");
+        //     var div2 = document.getElementById("test2");
+        //     var div3 = document.getElementById("test3");
           
-            if (data === "test1") {
-              div1.style.display = "none";
-              div2.style.display = "block";
-            } else if (data === "test2") {
-              div2.style.display = "none";
-              div3.style.display = "block";
-            } else if (data === "test3") {
-              div3.style.display = "none";
-              div1.style.display = "block";
-            }};
+        //     if (data === "test1") {
+        //       div1.style.display = "none";
+        //       div2.style.display = "block";
+        //     } else if (data === "test2") {
+        //       div2.style.display = "none";
+        //       div3.style.display = "block";
+        //     } else if (data === "test3") {
+        //       div3.style.display = "none";
+        //       div1.style.display = "block";
+        //     }};
         
         // Settings menu profile list
         self.profiles = new ItemListHelper(
@@ -216,12 +216,12 @@ $(function() {
             }
         };
 
-        if(data.type == "popup") {
-            new PNotify({
-                title: 'Internal Slicer',
-                text: data.msg,
-                });
-        }
+        // if(data.type == "popup") {
+        //     new PNotify({
+        //         title: 'Internal Slicer',
+        //         text: data.msg,
+        //         });
+        // }
         
         self.downloadSlicer = function() {
             var url = OctoPrint.getSimpleApiUrl("internal_slicer");
