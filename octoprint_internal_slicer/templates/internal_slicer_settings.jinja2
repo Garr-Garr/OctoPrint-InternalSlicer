@@ -16,17 +16,24 @@
                     <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.debug_logging"> {{ _('Document the output of Internal Slicer to plugin_internal_slicer_engine.log') }}
                 </label>
             </div>
+            {#
             <label class="control-label">{{ _('Cancel Slice in Progress') }}</label>
             <div class="controls">
                 This will cancel the ongoing slice<br><br>
                 <button class="btn" type="button" data-bind="click: function() { $root.cancel_slice()}">Cancel Slice</button>
             </div>
-            <label class="control-label">{{ _('Enable GUI Slicer') }}</label>
+            <label class="control-label">{{ _('Reset Wizard') }}</label>
+            <div class="controls">
+                This will reset the wizard for debugging<br><br>
+                <button class="btn" type="button" data-bind="click: function() { $root.resetWizard()}">Reset NOOOW</button>
+            </div>
+            <label class="control-label">{{ _('Diable GUI Slicer') }}</label>
             <div class="controls"> 
                 <label class="checkbox">
-                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.enableGUI"> {{ _("Disable this if your browser doesn't support WebGL") }}
+                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.disableGUI"> {{ _("Enable this if your browser doesn't support WebGL") }}
                 </label>
             </div>
+            #}
             <label class="control-label">{{ _('Enable Auto Bed Temp') }}</label>
             <div class="controls">
                 <label class="checkbox">

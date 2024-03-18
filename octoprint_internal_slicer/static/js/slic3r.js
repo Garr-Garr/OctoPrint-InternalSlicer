@@ -20,6 +20,7 @@ $(function() {
         });
 
         self.fileName = ko.observable();
+        self.enableSlicingDialog = ko.observable();
 
         self.placeholderName = ko.observable();
         self.placeholderDisplayName = ko.observable();
@@ -211,8 +212,6 @@ $(function() {
                 //get div and scroll to bottom
                 self.slicerCommandResponseText = $("#slicerCommandResponseText");
                 self.slicerCommandResponseText.scrollTop(self.slicerCommandResponseText[0].scrollHeight);
-                self.slicerCommandResponseText2 = $("#slicerCommandResponseText2");
-                self.slicerCommandResponseText2.scrollTop(self.slicerCommandResponseText2[0].scrollHeight);
             }
         };
 
@@ -318,6 +317,7 @@ $(function() {
         };
 
         self.onBeforeBinding = function () {
+            //self.enableSlicingDialog = (self.settings.plugins.internal_slicer.disableGUI());
             self.settings = self.settingsViewModel.settings;
             self.requestData();
         };

@@ -10,9 +10,9 @@ license: AGPLv3
 # today's date in format YYYY-MM-DD, e.g.
 date: 2024-02-26
     
-homepage: https://github.com/Garr-R/OctoPrint-InternalSlicer
-source: https://github.com/Garr-R/OctoPrint-InternalSlicer
-archive: https://github.com/Garr-R/OctoPrint-InternalSlicer/archive/master.zip
+homepage: https://github.com/Garr-Garr/OctoPrint-InternalSlicer
+source: https://github.com/Garr-Garr/OctoPrint-InternalSlicer
+archive: https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/master.zip
     
 # set this to true if your plugin uses the dependency_links setup parameter to include
 # library versions not yet published on PyPi. SHOULD ONLY BE USED IF THERE IS NO OTHER OPTION!

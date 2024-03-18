@@ -74,12 +74,12 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 
 				# version check: github repository
 				type="github_release",
-				user="Garr-R",
+				user="Garr-Garr",
 				repo="OctoPrint-InternalSlicer",
 				current=self._plugin_version,
 
 				# update method: pip
-				pip="https://github.com/Garr-R/OctoPrint-InternalSlicer/archive/{target_version}.zip"
+				pip="https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/{target_version}.zip"
 			)
 		)
 
@@ -106,25 +106,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		self._slicer_logger.propagate = False
 
 	def on_after_startup(self):
-		# Copy PrusaSlicer download script to scripts folder on startup
-		src_files = os.listdir(self._basefolder+"/static/scripts")
-		src = (self._basefolder+"/static/scripts")
-		dest = ("/home/pi/.octoprint/scripts")
-
-		for file_name in src_files:
-			full_src_name = os.path.join(src, file_name)
-			full_dest_name = os.path.join(dest, file_name)
-			if not (os.path.isfile(full_dest_name)):
-				shutil.copy(full_src_name, dest)
-				os.chmod(full_dest_name, 0o755)
-				self._logger.info("Had to copy "+file_name+" to scripts folder.")
-			else:
-				# Check if files are the same, if not overwrite
-				if not self.hashMatches(full_src_name, full_dest_name):
-					shutil.copy(full_src_name, dest)
-					self._logger.info("Had to overwrite {} with new version.".format(file_name))
-					os.chmod(full_dest_name, 0o755)
-
 		# Check if CPU limit is installed
 		try:
 			subprocess.check_output(["which", "cpulimit"])
@@ -138,19 +119,19 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	##~~ SettingsPlugin mixin
 	def get_settings_defaults(self):
 		return dict(
-			slicer_engine="/home/pi/slicers/PrusaSlicer-version_2.7.2-armhf.AppImage",
+			slicer_engine="$HOME/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage",
 			default_profile=None,
 			debug_logging=True,
-			enableGUI = True,
-			enableAutoBedTemp = True,
+			disableGUI = False,
+			enableAutoBedTemp = False,
 			enableCpuLimit = False,
 			cpuLimitInstalled = False,
 			cpuLimit_Value = 100,
-			#wizard_version=1
+			wizard_version=0
 		)
 	
 	def on_settings_save(self, data):
-		old_GUI_value = self._settings.get_boolean(["enableGUI"])
+		old_GUI_value = self._settings.get_boolean(["disableGUI"])
 		old_debug_logging = self._settings.get_boolean(["debug_logging"])
 		old_enableAutoBedTemp = self._settings.get_boolean(["enableAutoBedTemp"])
 		old_enableCpuLimit = self._settings.get_boolean(["enableCpuLimit"])
@@ -158,7 +139,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
-		new_GUI_value = self._settings.get_boolean(["enableGUI"])
+		new_GUI_value = self._settings.get_boolean(["disableGUI"])
 		new_debug_logging = self._settings.get_boolean(["debug_logging"])
 		new_enableAutoBedTemp = self._settings.get_boolean(["enableAutoBedTemp"])
 		new_enableCpuLimit = self._settings.get_boolean(["enableCpuLimit"])
@@ -172,11 +153,11 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		
 		if old_GUI_value != new_GUI_value:
 			if new_GUI_value:
-				self._settings.set_boolean(["enableGUI"], True)
-				self._logger.info("GUI enabled.")
+				self._settings.set_boolean(["disableGUI"], True)
+				self._logger.info("GUI Disabled.")
 			else:
-				self._settings.set_boolean(["enableGUI"], False)
-				self._logger.info("GUI disabled.")
+				self._settings.set_boolean(["disableGUI"], False)
+				self._logger.info("GUI Enabled.")
 
 		if old_enableAutoBedTemp != new_enableAutoBedTemp:
 			if new_enableAutoBedTemp:
@@ -221,12 +202,10 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		if command == 'installCPULimit':
 			self.installCPULimit()
 
-
-
 	##~~ WizardPlugin mixin
 	#def on_wizard_finish(self):
 		#self._logger.info("Wizard finished :)")
-		#self._settings.set(["wizard_version"], 2)
+		#self._settings.set(["wizard_version"], 1)
 
 	#def is_wizard_required(self):
 		#if self._settings.get_boolean(["setup_done"]) is False:
@@ -235,13 +214,13 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			#self._settings.save()
 		#return True
 	
-	#ef get_wizard_version(self):
+	#def get_wizard_version(self):
 		#slicer_wizard_version = self._settings.get(["wizard_version"])
 		# Returns 1 for the current wizard version, iterate wizard_version if you make changes to the wizard
 		#return slicer_wizard_version
 	
 	#def reset_wizard(self):
-		#self._settings.set(["wizard_version"], 1)
+		#self._settings.set(["wizard_version"], 0)
 		#self._settings.save()
 
 	##~~ BlueprintPlugin mixin
@@ -318,20 +297,14 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	##~~ EventHandlerPlugin mixin
 	def on_event(self, event, payload):
 		# check if event is slicing started
-		self._logger.info("test 1")
 		if event == octoprint.events.Events.SLICING_STARTED :
-			self._logger.info("test 2")
 			# Set processing slice
 			self.processingSlice = True
 
 		# Otherwise check if event is slicing done, cancelled, or failed
 		elif event == octoprint.events.Events.SLICING_DONE or event == octoprint.events.Events.SLICING_CANCELLED or event == octoprint.events.Events.SLICING_FAILED :
-			self._logger.info("test 3")
 			# Clear processing slice
 			self.processingSlice = False
-
-			# Restore files
-			self.restoreFiles()
 
 	##~~ SlicerPlugin mixin
 	def is_slicer_configured(self):
@@ -521,8 +494,8 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			self._logger.info("-" * 40)
 
 	def cancel_slicing(self): # , machinecode_path
-		#maybe add a process kill command here
-		self.p.terminate()
+		if self.p is not None:
+			self.p.terminate()
 		# with self._slicing_commands_mutex:
 		# 	if machinecode_path in self._slicing_commands:
 		# 		with self._cancelled_jobs_mutex:
@@ -559,8 +532,8 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 
 			#command_pid = subprocess.Popen(["sudo", "dpkg", "-i" (os.path.join(self._basefolder, "static", "installation", "cpulimit_2.8-1.deb"))], stdout=subprocess.PIPE).communicate()[0].decode('utf-8').strip()
 		except CommandlineError as err:
-			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "Installation failed. You may need to log into the Pi via SSH first: https://github.com/Garr-R/OctoPrint-InternalSlicer/wiki/RPi-Slicing-Benchmarks"))
-		else:
+			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "Installation failed. You may need to log into the Pi via SSH first: https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/RPi-Slicing-Benchmarks"))
+		#else:
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "CPULimit installed successfully!"))
 			self._settings.set_boolean(["cpuLimitInstalled"], True)
 			self._settings.save()
@@ -570,10 +543,10 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			self.p.terminate()
 
 	def downloadPrusaslicer(self):
-		self._logger.info("Starting PrusaSlicer v2.7.2 download")
+		self._logger.info("Starting PrusaSlicer v2.6.1 download")
 
 		# If PrusaSlicer
-		if os.access("/home/pi/slicers/PrusaSlicer-version_2.7.2-armhf.AppImage", os.X_OK):
+		if os.access(os.path.expanduser("~/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage"), os.X_OK):
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "PrusaSlicer is already installed!"))
 			self._logger.info("PrusaSlicer is already installed!")
 			return
@@ -592,14 +565,13 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = line))
 
 		# Wait for the process to finish
-		if proc.poll() is not None and os.access("/home/pi/slicers/PrusaSlicer-version_2.7.2-armhf.AppImage", os.X_OK):
+		if proc.poll() is not None and os.access(os.path.expanduser("~/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage"), os.X_OK):
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "PrusaSlicer has been installed!"))
 			self._logger.info("PrusaSlicer has been installed!")
 		else:
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "The PrusaSlicer installation has failed Maybe try downloading the offline installation?" + 
-														   									" https://github.com/Garr-R/OctoPrint-InternalSlicer/archive/refs/heads/offline.zip"))
+														   									" https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/offline.zip"))
 			self._logger.info("The PrusaSlicer installation has failed")	
-
 
 	# CPU Limit installation 
 
@@ -612,52 +584,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	# 		#self.log(u"", "stderr", u"Installation failed. Please submit a bug report!")
 	# 		return
 
-	# def downloadCuraEngine(self):
-	# 	self._logger.info("testing download function")
-
-	# def convertCuraToProfile(self, input, name, displayName, description):
-	# 	# Cura Engine doesn't support solidarea_speed, perimeter_before_infill, raft_airgap_all, raft_surface_thickness, raft_surface_linewidth, plugin_config, object_center_x, and object_center_y
-
-	# 	# Clean up input
-	# 	fd, curaProfile = tempfile.mkstemp()
-	# 	os.close(fd)
-	# 	self.curaProfileCleanup(input, curaProfile)
-
-	# 	# Import profile manager
-	# 	profileManager = imp.load_source("Profile", self._slicing_manager.get_slicer("cura")._basefolder.replace('\\', '/') + "/profile.py")
-
-	# 	# Create profile
-	# 	profile = octoprint.slicing.SlicingProfile("cura", name, profileManager.Profile.from_cura_ini(curaProfile), displayName, description)
-
-	# 	# Remove temporary profile
-	# 	os.remove(curaProfile)
-
-	# 	# Save profile TODO: figure out what None and True do
-	# 	return self._slicing_manager.save_profile("cura", name, profile, None, True, displayName, description)
-
-	# def curaProfileCleanup(self, input, output) :
-	# 	# Cura profile cleanup
-
-	# 	# Create output
-	# 	output = open(output, "wb")
-
-	# 	# Go through all lines in input
-	# 	for line in open(input) :
-
-	# 		# Fix GCode lines
-	# 		match = re.findall("^(.+)(\d+)\.gcode", line)
-	# 		if len(match) :
-	# 			line = match[0][0] + ".gcode" + match[0][1] + line[len(match[0][0]) + len(match[0][1]) + 6 :]
-
-	# 		if ';' in line and ".gcode" not in line and line[0] != '\t' :
-	# 			output.write(line[0 : line.index(';')] + '\n')
-	# 		else : 
-	# 			output.write(line)
-
-	# 	# Close output
-	# 	output.close()
-
-
 	def slic3rProfileCleanup(self, input, output) :
 		# Slic3r and PrusaSlicer profile cleanup
 
@@ -665,7 +591,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		output = open(output, "wb")
 
 		for line in open(input) :
-
 			# Remove comments from input
 			if ';' in line and "_gcode" not in line and line[0] != '\t' :
 				output.write(line[0 : line.index(';')] + '\n')
@@ -674,47 +599,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			
 		# Close output
 		output.close()
-
-	# Broken
-	def restoreFiles(self) :
-		# Check if slicer was changed
-		if self.slicerChanges is not None :
-
-			# Move original files back
-			os.remove(self.slicerChanges["Slicer Profile Location"])
-			shutil.move(self.slicerChanges["Slicer Profile Temporary"], self.slicerChanges["Slicer Profile Location"])
-
-			if "Model Temporary" in self.slicerChanges :
-				os.remove(self.slicerChanges["Model Location"])
-				shutil.move(self.slicerChanges["Model Temporary"], self.slicerChanges["Model Location"])
-
-			# Restore printer profile
-			self._printer_profile_manager.save(self.slicerChanges["Printer Profile Content"], True)
-
-			# Clear slicer changes
-			self.slicerChanges = None
-
-	def hashMatches(self, fileA, fileB):
-	# function to compare the MD5 hash of two files, returning True if they match, and False if they do not match
-	# this is close enough for our needs to confirming that the files are identical
-		if ((hashlib.md5(open(fileA).read().encode()).hexdigest()) == (hashlib.md5(open(fileB).read().encode()).hexdigest())):
-			return True
-		else:
-			return False
-
-	#TODO: Re-enable this later (was originally named _sanitize_name)
-	def sanitizeName(name):
-		if name is None:
-			return None
-		
-		if "/" in name or "\\" in name:
-			raise ValueError("Name must not contain slashes")
-		
-		import string
-		valid_chars = "-_.() {ascii}{digits}".format(ascii=string.ascii_letters, digits=string.digits)
-		sanitized_name = ''.join(c for c in name if c in valid_chars)
-		sanitized_name = sanitized_name.replace(" ", "_")
-		return sanitized_name.lower()
 
 # If you want your plugin to be registered within OctoPrint under a different name than what you defined in setup.py
 # ("OctoPrint-PluginSkeleton"), you may define that here. Same goes for the other metadata derived from setup.py that
