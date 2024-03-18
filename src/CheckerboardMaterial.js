@@ -8,7 +8,7 @@ export function CheckerboardMaterial( repeatX, repeatY, parameters, onTextureLoa
     MeshBasicMaterial.call( this );
 
     this.createTexture = function ( repeatX, repeatY ) {
-        var texture = new TextureLoader().load( PLUGIN_BASEURL + "slicer/static/img/checkerboard.gif", function( texture ) {
+        var texture = new TextureLoader().load( PLUGIN_BASEURL + "internal_slicer/static/img/checkerboard.gif", function( texture ) {
             texture.minFilter = texture.magFilter = NearestFilter;
             texture.repeat.set( repeatX, repeatY );
             texture.wrapS = RepeatWrapping;

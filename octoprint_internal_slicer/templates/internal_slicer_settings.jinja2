@@ -1,38 +1,77 @@
-<div id="settings_plugin_slicer_dialog" data-bind="allowBindings: true">
-    <h3>{{ _('Raspberry Pi General Settings') }}</h3>
-    
-    {# PrusaSlicer (Online) download button - enabled in the master branch #}
-    <form class="form-horizontal">
+<div id="settings_plugin_internal_slicer_dialog" data-bind="allowBindings: true">
+
+    <h3> <a data-toggle="collapse" data-parent="#settingsAccordion" href="#Generalsettings">General Settings  <i class="icon-chevron-down"></i> </a></h3>
+    <ul id="Generalsettings" class="collapse show in">
+        {# PrusaSlicer (Online) download button - enabled in the master branch #}
+        <form class="form-horizontal">
         <div class="control-group">
             <label class="control-label">{{ _('Download PrusaSlicer') }}</label>
             <div class="controls">
-                This will download the latest version of PrusaSlicer and install it in a new directory on your Raspberry Pi.<br><br>
+                This will download the latest available version of PrusaSlicer (v2.7.2) and install it in a new directory on your Raspberry Pi.<br><br>
                 <button class="btn" type="button" data-bind="click: function() { $root.downloadSlicer(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Download PrusaSlicer</button>
             </div>
-        </div>
-    </form>
-
-    {# PrusaSlicer (Offline) extraction button - disabled in the master branch
-    <form class="form-horizontal">
-        <div class="control-group">
-            <label class="control-label">{{ _('Extract PrusaSlicer') }}</label>
+            <label class="control-label">{{ _('Enable Logging') }}</label>
             <div class="controls">
-                This will download the latest version of PrusaSlicer and install it in a new directory on your Raspberry Pi.<br><br>
-                <button class="btn" type="button" data-bind="click: function() { $root.extractSlicer(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Extract PrusaSlicer</button>
+                <label class="checkbox">
+                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.debug_logging"> {{ _('Document the output of Internal Slicer to plugin_internal_slicer_engine.log') }}
+                </label>
+            </div>
+            {#
+            <label class="control-label">{{ _('Cancel Slice in Progress') }}</label>
+            <div class="controls">
+                This will cancel the ongoing slice<br><br>
+                <button class="btn" type="button" data-bind="click: function() { $root.cancel_slice()}">Cancel Slice</button>
+            </div>
+            <label class="control-label">{{ _('Reset Wizard') }}</label>
+            <div class="controls">
+                This will reset the wizard for debugging<br><br>
+                <button class="btn" type="button" data-bind="click: function() { $root.resetWizard()}">Reset NOOOW</button>
+            </div>
+            <label class="control-label">{{ _('Diable GUI Slicer') }}</label>
+            <div class="controls"> 
+                <label class="checkbox">
+                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.disableGUI"> {{ _("Enable this if your browser doesn't support WebGL") }}
+                </label>
+            </div>
+            #}
+            <label class="control-label">{{ _('Enable Auto Bed Temp') }}</label>
+            <div class="controls">
+                <label class="checkbox">
+                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.enableAutoBedTemp"> {{ _('Enable this option if you want the plugin to automatically set the bed temperature during slicing.') }}
+                </label>
             </div>
         </div>
     </form>
-    #}
-    
+    </ul>
+
+    <h3> <a data-toggle="collapse" data-parent="#settingsAccordion" href="#Slicersettings">Slicer Settings  <i class="icon-chevron-down"></i> </a></h3>
+    <ul id="Slicersettings" class="collapse">
+        <form class="form-horizontal">
+        <div class="control-group">
+            <label class="control-label">{{ _('Install CPU Limit') }}</label>
+            <div class="controls">
+                This will install CPU limit to your Raspberry Pi / Debian OS<br>
+                <button class="btn" type="button" data-bind="click: function() { $root.installCPULimit(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Install CPU Limit</button>
+            </div>
+            <label class="control-label">{{ _('Enable CPU Throttle') }}</label>
+            <div class="controls"> 
+                <label class="checkbox">
+                    <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.enableCpuLimit"> {{ _("Enable this if you want to prevent the Pi from overheating.") }}
+                </label>
+            </div>
+            <label class="control-label">{{ _('CPU Throttle Percentage') }}</label>
+            <div class="controls">
+                <div class="input-append">
+                    <input type="number" class="input-block-level" data-bind="value: settings.plugins.internal_slicer.cpuLimit_Value, valueUpdate: 'afterkeydown'">
+                    <span class="add-on" data-bind="text: '%'"></span>
+                    <br>testing testing testing testing testing
+                </div>
+            </div>   
+        </div>
     {# Test slicer engine path #}
-    <h3>{{ _('Slicer Location Settings') }}</h3>
-    <form class="form-horizontal">
       {% include "snippets/settings/slicer/enginePath.jinja2" %}
         <div class="control-group">
             <div class="controls">
-                <label class="checkbox">
-                    <input type="checkbox" data-bind="checked: settings.plugins.slicer.debug_logging"> {{ _('Log the output of Slicer to plugin_slicer_engine.log') }}
-                </label>
                 <button class="btn" type="button" data-bind="hidden: isDefaultSlicer() == 'unknown', click: setAsDefaultSlicer">{{ _('Set as default slicer') }}</button>
                 <span class="help-inline" data-bind="hidden: isDefaultSlicer() == 'unknown', text: function() {
                     switch (isDefaultSlicer()) {
@@ -45,6 +84,7 @@
             </div>
         </div>
     </form>
+    </ul>
 
     {# Imported profiles  table #}
     <h3>{{ _('Profiles') }}</h3>
@@ -56,16 +96,16 @@
     <table class="table table-striped table-hover table-condensed table-hover">
         <thead>
         <tr>
-            <th class="settings_plugin_slicer_profiles_key">{{ _('Identifier') }}</th>
-            <th class="settings_plugin_slicer_profiles_name">{{ _('Name') }}</th>
-            <th class="settings_plugin_slicer_profiles_actions">{{ _('Actions') }}</th>
+            <th class="settings_plugin_internal_slicer_profiles_key">{{ _('Identifier') }}</th>
+            <th class="settings_plugin_internal_slicer_profiles_name">{{ _('Name') }}</th>
+            <th class="settings_plugin_internal_slicer_profiles_actions">{{ _('Actions') }}</th>
         </tr>
         </thead>
         <tbody data-bind="foreach: profiles.paginatedItems">
             <tr data-bind="attr: {title: description}">
-                <td class="settings_plugin_slicer_profiles_key"><span class="icon-star" data-bind="invisible: !isdefault()"></span> <span data-bind="text: key"></span></td>
-                <td class="settings_plugin_slicer_profiles_name" data-bind="text: name"></td>
-                <td class="settings_plugin_slicer_profiles_actions">
+                <td class="settings_plugin_internal_slicer_profiles_key"><span class="icon-star" data-bind="invisible: !isdefault()"></span> <span data-bind="text: key"></span></td>
+                <td class="settings_plugin_internal_slicer_profiles_name" data-bind="text: name"></td>
+                <td class="settings_plugin_internal_slicer_profiles_actions">
                     <a href="#" class="icon-star" title="{{ _('Make default') }}" data-bind="enable: !isdefault(), css: {disabled: isdefault()}, click: function() { if (!$data.isdefault()) { $root.makeProfileDefault($data); } }"></a>&nbsp;|&nbsp;<a href="#" class="icon-trash" title="{{ _('Delete Profile') }}" data-bind="enable: !isdefault(), css: {disabled: isdefault()}, click: function() { if (!$data.isdefault()) { $root.removeProfile($data); } }"></a>
                 </td>
             </tr>
@@ -87,7 +127,7 @@
     <button class="btn pull-right" data-bind="click: function() { $root.showImportProfileDialog() }">{{ _('Import Profile...') }}</button>
 
     {# Import profile popup #}
-    <div id="settings_plugin_slicer_import" class="modal hide fade">
+    <div id="settings_plugin_internal_slicer_import" class="modal hide fade">
         <div class="modal-header">
             <a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
             <h3>{{ _('Import Existing Slicer Profile') }}</h3>
@@ -101,7 +141,7 @@
                         <div class="input-prepend">
                     <span class="btn fileinput-button">
                         <span>{{ _('Browse...') }}</span>
-                        <input id="settings-slicer-import" type="file" name="file" data-url="{{ url_for("plugin.slicer.importSlicerProfile") }}">
+                        <input id="settings-internal_slicer-import" type="file" name="file" data-url="{{ url_for("plugin.internal_slicer.importSlicerProfile") }}">
                     </span>
                             <span class="add-on" data-bind="text: fileName"></span>
                         </div>
@@ -141,7 +181,7 @@
 
         <div class="modal-footer">
             <button class="btn" data-dismiss="modal" aria-hidden="true">{{ _('Abort') }}</button>
-            <button class="btn btn-primary" id="settings-slicer-import-start">{{ _('Confirm') }}</button>
+            <button class="btn btn-primary" id="settings-internal_slicer-import-start">{{ _('Confirm') }}</button>
         </div>
     </div>
 
@@ -163,7 +203,7 @@
 <br>
 
 {# Command response popup #}
-<div id="slicer_command_response_popup" class="modal hide fade">
+<div id="internal_slicer_command_response_popup" class="modal hide fade">
 	<center>Command Response:</center>
 	<br>
 	<center><textarea id="slicerCommandResponseText" data-bind="text: $root.slicerCommandResponse" style="width:90%;height:250px;"></textarea></center>

@@ -10,21 +10,21 @@
 - High-light overhang areas. Automatically orient the model for better result ("lay flat").
 - Slice based on PrusaSlicer profiles you upload to OctoPrint.
 - Customizable slicer settings, including Basic (layer height, bed temperature ...) and Advanced (print speed, start/end G-code ...).
-- [More is coming...](https://github.com/Garr-R/OctoPrint-Slicer/wiki/Future-Plans)
+- [More is coming...](https://github.com/Garr-Garr/OctoPrint-Slicer/wiki/Future-Plans)
 
 ## Setup
 ### Online:
 Install via the bundled OctoPrint Plugin Manager, or manually using this URL:
 
-    https://github.com/Garr-R/OctoPrint-Slicer/archive/refs/heads/master.zip
+    https://github.com/Garr-Garr/OctoPrint-Slicer/archive/refs/heads/master.zip
 
-### Offline (_bundled with PruasSlicer v2.4.2_): 
+### Offline (_bundled with PruasSlicer v2.6.1_): 
 
-[Click here for instructions on how to install this plugin offline](https://github.com/Garr-R/OctoPrint-Slicer/wiki/Offline-Installation-Instructions)
+[Click here for instructions on how to install this plugin offline](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Offline-Installation-Instructions)
 
 ## Importing your PrusaSlicer profile
 
-[Click here for instructions on how to export and import your PrusaSlicer profiles](https://github.com/Garr-R/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles)
+[Click here for instructions on how to export and import your PrusaSlicer profiles](https://github.com/Garr-Garr/OctoPrint-Slicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles)
   
 ## More Photos
 

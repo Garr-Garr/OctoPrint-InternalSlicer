@@ -1,7 +1,7 @@
 {
-  "name": "OctoPrint-Slicer",
-  "description": "OctoPrint-Slicer",
-  "author": "Kenneth Jiang <kenneth.jiang@gmail.com>",
+  "name": "OctoPrint-InternalSlicer",
+  "description": "OctoPrint-InternalSlicer",
+  "author": "Garrett Broters <gbroters@gmail.com>",
   "license": "MIT",
   "main": "octoprint_slicer/static/js/octoprint_slicer.min.js",
   "scripts": {

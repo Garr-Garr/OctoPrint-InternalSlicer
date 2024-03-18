@@ -20,7 +20,7 @@ function isDev() {
 }
 
 function SlicerViewModel(parameters) {
-    mixpanel.track("App Loaded");
+    //mixpanel.track("App Loaded");
 
     var self = this;
 
@@ -28,12 +28,12 @@ function SlicerViewModel(parameters) {
 
     //check if webGL is present. If not disable Slicer plugin
     if ( ! THREETK.Detector.webgl ) {
-        $('#tab_plugin_slicer').empty().append("<h3>Slicer Plugin is disabled because your browser doesn't support WebGL</h3>");
+        $('#tab_plugin_internal_slicer').empty().append("<h3>The Slicer Plugin is disabled because your browser doesn't support WebGL</h3>");
         return;
     }
 
     // assign the injected parameters, e.g.:
-    self.slicingViewModel = parameters[0];
+    //self.slicingViewModel = parameters[0];
     self.overridesViewModel = parameters[1];
     self.printerStateViewModel = parameters[2];
     self.printerProfilesViewModel = parameters[3];
@@ -46,9 +46,9 @@ function SlicerViewModel(parameters) {
         if (!self.slicingViewModel.enableSlicingDialog() && !force) {
             return;
         }
-        mixpanel.track("Load STL");
+        //mixpanel.track("Load STL");
 
-        $('a[href="#tab_plugin_slicer"]').tab('show');
+        $('a[href="#tab_plugin_internal_slicer"]').tab('show');
 
         self.setSlicingViewModelIfNeeded(target, file);
         self.addSTL(target, file);
@@ -63,7 +63,7 @@ function SlicerViewModel(parameters) {
     }
 
     self.addSTL = function(target, file) {
-        $('#tab_plugin_slicer > div.translucent-blocker').show();
+        $('#tab_plugin_internal_slicer > div.translucent-blocker').show();
         self.stlViewPort.loadSTL(BASEURL + "downloads/files/" + target + "/" + file);
     }
 
@@ -131,7 +131,7 @@ function SlicerViewModel(parameters) {
     self.init = function() {
         OctoPrint.socket.onMessage("event", self.removeTempFilesAfterSlicing);
 
-        $('#tab_plugin_slicer > div.translucent-blocker').hide();
+        $('#tab_plugin_internal_slicer > div.translucent-blocker').hide();
 
         self.slicingViewModel.requestData();
 
@@ -363,7 +363,7 @@ function SlicerViewModel(parameters) {
     };
 
     self.slice = function() {
-        mixpanel.track("Slice Model");
+        //mixpanel.track("Slice Model");
 
         self.slicing(true);
 
@@ -466,7 +466,7 @@ function SlicerViewModel(parameters) {
 
         //Add text to indicate front/back of print bed
         var loader = new THREE.FontLoader();
-        loader.load( PLUGIN_BASEURL + "slicer/static/js/optimer_bold.typeface.json", function ( font ) {
+        loader.load( PLUGIN_BASEURL + "internal_slicer/static/js/optimer_bold.typeface.json", function ( font ) {
             self.createText(font, "Front", width, depth, self.floor);
             self.createText(font, "Back", width, depth, self.floor);
             self.createText(font, "Left", width, depth, self.floor);
@@ -576,12 +576,12 @@ function SlicerViewModel(parameters) {
 
     // Pause WebGL rendering when slicer tab is inactive
     self.onTabChange = function (next, current) {
-        if (current === "#tab_plugin_slicer") {
+        if (current === "#tab_plugin_internal_slicer") {
             self.stlViewPort.pauseRendering();
         }
     }
     self.onAfterTabChange = function (current, previous) {
-        if (current === "#tab_plugin_slicer") {
+        if (current === "#tab_plugin_internal_slicer") {
             self.stlViewPort.unpauseRendering();
         }
     }
@@ -593,10 +593,10 @@ function SlicerViewModel(parameters) {
     ///////////////////////
 
     function startLongRunning( func ) {
-        $('#tab_plugin_slicer > div.translucent-blocker').show();
+        $('#tab_plugin_internal_slicer > div.translucent-blocker').show();
         setTimeout( function() {
             func();
-            $('#tab_plugin_slicer > div.translucent-blocker').hide();
+            $('#tab_plugin_internal_slicer > div.translucent-blocker').hide();
         }, 25);
     }
 
@@ -651,7 +651,7 @@ function SlicerViewModel(parameters) {
     }
 
     function updateControlState() {
-        $('#tab_plugin_slicer > div.translucent-blocker').hide();
+        $('#tab_plugin_internal_slicer > div.translucent-blocker').hide();
         if (!self.stlViewPort.selectedModel()) {
             $("#slicer-viewport button").addClass("disabled");
             $("#slicer-viewport .values div").removeClass("show");
@@ -726,6 +726,6 @@ OCTOPRINT_VIEWMODELS.push([
     // e.g. loginStateViewModel, settingsViewModel, ...
     [ "slicingViewModel", "overridesViewModel", "printerStateViewModel", "printerProfilesViewModel" ],
 
-    // e.g. #settings_plugin_slicer, #tab_plugin_slicer, ...
+    // e.g. #settings_plugin_slicer, #tab_plugin_internal_slicer, ...
     [ "#slicer" ]
 ]);

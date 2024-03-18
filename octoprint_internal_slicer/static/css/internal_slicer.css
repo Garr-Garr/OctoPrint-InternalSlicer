@@ -1,5 +1,4 @@
-/* TODO: Have your plugin's CSS files generated to here. */
-#tab_plugin_slicer {
+#tab_plugin_internal_slicer {
     position: relative;
 }
 
@@ -15,8 +14,22 @@
     left: 100px;
 }
 
-#slicer {
+#internal_slicer {
     margin: 12px 0px;
+}
+
+#testing_custom_settings_css {
+    display: grid;
+    justify-content: center;
+    text-align: left;
+}
+
+#gcode-scripts-row {
+    margin-left: 0px;
+}
+
+.form-horizontal .control-label {
+	text-align: left;
 }
 
 #slicer-viewport {
@@ -307,7 +320,7 @@
 
 .input-append input[type="number"] {
     display: inline;
-    width: 50px;
+    width: 100px;
     margin-left: 3px;
     margin-bottom: 10px;
 }
@@ -324,7 +337,7 @@
     min-height: 180px;
 }
 
-#tab_plugin_slicer .checkbox {
+#tab_plugin_internal_slicer .checkbox {
     padding-top: 5px;
 }
 
@@ -337,6 +350,11 @@
     background-color: white;
     z-index: 100;
     opacity: 0.6;
+}
+
+.ui-pnotify-container.custom-alert {
+    background-color: #ff6600;
+    color: #000000;
 }
 
 /* loading spinner animation */
@@ -402,3 +420,5 @@
   }
 }
 /* end of loading spinner animation */
+
+table th.settings_plugin_internal_slicer_profiles_key,table td.settings_plugin_internal_slicer_profiles_key{text-overflow:ellipsis;text-align:left;width:200px}table th.settings_plugin_internal_slicer_profiles_name,table td.settings_plugin_internal_slicer_profiles_name{text-overflow:ellipsis;text-align:left}table th.settings_plugin_internal_slicer_profiles_actions,table td.settings_plugin_internal_slicer_profiles_actions{text-align:center;width:100px}table th.settings_plugin_internal_slicer_profiles_actions a,table td.settings_plugin_internal_slicer_profiles_actions a{text-decoration:none;color:#000}table th.settings_plugin_internal_slicer_profiles_actions a.disabled,table td.settings_plugin_internal_slicer_profiles_actions a.disabled{color:#ccc;cursor:default}

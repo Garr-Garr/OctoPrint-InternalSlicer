@@ -1,0 +1,225 @@
+<div class="translucent-blocker">
+    <div class="sk-cube-grid">
+      <div class="sk-cube sk-cube1"></div>
+      <div class="sk-cube sk-cube2"></div>
+      <div class="sk-cube sk-cube3"></div>
+      <div class="sk-cube sk-cube4"></div>
+      <div class="sk-cube sk-cube5"></div>
+      <div class="sk-cube sk-cube6"></div>
+      <div class="sk-cube sk-cube7"></div>
+      <div class="sk-cube sk-cube8"></div>
+      <div class="sk-cube sk-cube9"></div>
+    </div>
+</div>
+
+<div id="slicer-viewport">
+
+</div>
+<br />
+
+<div>
+    <ul class="nav nav-tabs">
+    <li class="active"><a data-toggle="tab" href="#general">General</a></li>
+    <li><a data-toggle="tab" href="#basic_overrides">Basic</a></li>
+    <li><a data-toggle="tab" href="#advanced_overrides">Advanced</a></li>
+    <li><a data-toggle="tab" href="#help">Help</a></li>
+    <canvas id="slicer-canvas"></canvas>
+    </ul>
+</div>
+
+{%- macro slicer_setting(setting, title, label, callback) -%}
+  <div title="{{ title }}" class="input-append" data-bind="visible: !_.isUndefined($data['profile.{{ setting }}']())">
+    <label for="slicer_input_{{ setting }}" class="control-label">{{ label }}</label>
+    {{ caller() }}
+  </div>
+{%- endmacro %}
+
+{%- macro slicer_checkbox(setting, title, label) -%}
+  {% call slicer_setting(setting, title, label) -%}
+    <div class="controls checkbox">
+      <input id="slicer_input_{{ setting }}" type="checkbox" data-bind="checked: $data['profile.{{ setting }}']"></input>
+    </div>
+  {%- endcall %}
+{%- endmacro %}
+
+{%- macro slicer_select(setting, title, label) -%}
+  {% call slicer_setting(setting, title, label) -%}
+    <div class="controls">
+      <select id="slicer_input_{{ setting }}" data-bind="options: $data.optionsForKey('{{ setting }}'), value: $data['profile.{{ setting }}'], valueAllowUnset: true"></select>
+    </div>
+  {%- endcall %}
+{%- endmacro %}
+
+{%- macro slicer_number(setting, title, label, min, max, step, add_on) -%}
+  {% call slicer_setting(setting, title, label) -%}
+    <div class="controls">
+      <input id="slicer_input_{{ setting }}" data-bind="numericValue: $data['profile.{{ setting }}']" type="number"
+             {%- if min is defined %} min="{{ min }}"{% endif -%}
+             {%- if max is defined %} max="{{ max }}"{% endif -%}
+             {%- if step is defined %} step="{{ step }}">{% endif -%}</input>
+             {%- if add_on %}
+               <span class="add-on">{{ add_on }}</span>
+             {%- endif %}
+    </div>
+  {%- endcall %}
+{%- endmacro %}
+
+<div class="tab-content">
+  <div id="general" class="tab-pane fade in active">
+    <div id="slicing-settings">
+        <form class="form-vertical">
+            <div class="row">
+                <div class="span3">
+                    {#<div class="control-group">
+                        <label for="slicer_Slicer" class="control-label">{{ _('Slicer') }}</label>
+                        <div class="controls">
+                            <select id="slicer_Slicer" data-bind="options: matchingSlicers, optionsText: 'name', optionsValue: 'key', value: slicer"></select>
+                        </div>
+                    </div>#}
+
+                    <div class="control-group">
+                        <label for="slicer_Printer_Profile" class="control-label">{{ _('OctoPrint Profile') }}</label>
+                        <div class="controls">
+                            <select id="slicer_Printer_Profile" data-bind="options: printerProfiles.profiles.items, optionsText: 'name', optionsValue: 'id', value: printerProfile"></select>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="slicer_After_slicing" class="control-label">{{ _('After slicing...') }}</label>
+                        <div class="controls">
+                            <select id="slicer_After_slicing" data-bind="options: afterSlicingOptions, optionsText: 'text', optionsValue: 'value', value: afterSlicing"></select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="span3">
+                    <div class="control-group">
+                        <label for="slicer_Slicing_Profile" class="control-label">{{ _('Slicing Profile') }}</label>
+                        <div class="controls">
+                            <select id="slicer_Slicing_Profile" data-bind="options: profiles, optionsText: 'name', optionsValue: 'key', value: profile"></select>
+                        </div>
+                    </div>
+
+                    <div class="control-group">
+                        <label for="slicer_Output_Filename" class="control-label">{{ _('Output Filename') }}</label>
+                        <div class="controls">
+                            <div class="input-append">
+                                <input id="slicer_Output_Filename" type="text" data-bind="value: destinationFilename"></input>
+                                <span class="add-on" data-bind="text: '.gcode'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+  </div>
+
+  <div id="basic_overrides" class="tab-pane fade">
+      <div class="wrapper">
+          <form class="form-horizontal">
+              <div id="testing_custom_settings_css" class="row">
+                      {{ slicer_number("temperature", "Temperature", "Hotend Temperature", 150, 315, 1, "°C") }}
+                      {{ slicer_number("bed_temperature", "Bed temperature", "Bed temperature", 0, 110, 1, "°C") }}
+                      {{ slicer_number("layer_height", "Height of each layer", "Layer height", 0.01, 0.35, 0.01, "mm") }}
+                      {{ slicer_number("fill_density", "Percentage of the model that is filled in", "Infill density", 0, 100, 1, "%") }}
+                      {{ slicer_number("wall_thickness", "Shell thickness", "Shell thickness", 0.1, 2, 0.05, "mm") }}
+                      {{ slicer_number("print_speed", "Speed of the extruder's movements while printing", "Print speed", 2, 150, 0.1, "mm/s") }}
+                      {{ slicer_number("solid_layer_thickness", "Top and bottom thickness", "Top/bottom", 0.1, 2, 0.05, "mm") }}
+                      {{ slicer_select("support", "Support for overhangs", "Support") }}
+                      {{ slicer_checkbox("support_material", "Generate support material", "Supports") }}
+                      {{ slicer_checkbox("overhangs", "Detect Bridging Perimeters (recommended when using supports)", "Detect overhangs") }}
+                      {{ slicer_checkbox("spiral_vase", "Spiral Vase (automatically adjusts fill, perimeters, top layers, etc)", "Spiral vase") }}
+              </div>
+          </form>
+      </div>
+  </div>
+
+  <div id="advanced_overrides" class="tab-pane fade">
+      <div class="wrapper">
+          <form class="form-horizontal">
+              <div id="testing_custom_settings_css" class="row">
+                      {{ slicer_number("travel_speed", "Travel speed while not printing", "Travel Speed", 0, 300, 1, "mm/s") }}
+                      {{ slicer_number("infill_speed", "Speed while printing infill", "Infill Speed", 0, 300, 1, "mm/s") }}
+                      {{ slicer_number("first_layer_temperature", "First layer temperature", "First Layer Temperature", 0, 315, 1, "°C") }}
+                      {{ slicer_number("first_layer_bed_temperature", "First layer bed temperature", "First Layer Bed Temperature", 0, 110, 1, "°C") }}
+                      {{ slicer_number("brim_width", "Brim width", "Brim Width", 0, 30, 0.1, "mm") }}
+                      {{ slicer_number("skirts", "Skirt (mininum)", "Skirt (min)", 0, 100, 1, "loops") }}
+                      {{ slicer_number("min_skirt_length", "Skirt length (mininum)", "Skirt Length (min)", min="0", step="0.1", add_on="mm") }}
+                      {{ slicer_select("platform_adhesion", "Platform adhesion type", "Adhesion") }}
+                      <div data-bind="visible: !_.isUndefined($data['profile.brim_line_count']()) && $data['profile.platform_adhesion']() == 'brim'">
+                        {{ slicer_number("brim_line_count", "Brim line count", "Brim line count", min=0, step=1) }}
+                      </div>
+                      {{ slicer_number("filament_diameter", "Filament Diameter", "Filament", 0, 100, 0.01, "mm") }}
+                      {{ slicer_number("extrusion_multiplier", "Extrusion Multiplier", "Flow Multiplier", 0, 2, 0.001) }}
+                      {{ slicer_checkbox("cooling", "Enable auto cooling", "Part Cooling Fan") }}
+                      {{ slicer_checkbox("fan_always_on", "Keep fan always on", "Fan always on") }}
+              </div>
+          </form>
+      </div>
+
+      <h4> <a data-toggle="collapse" data-parent="#settingsAccordion" href="#GCodeScripts">GCode Scripts<i class="icon-chevron-down"></i> </a></h4>
+      <ul id="GCodeScripts" class="collapse" style="margin-left: 0px;">
+
+      <div class="row" id="gcode-scripts-row">
+            <div title="GCode inserted at the beginning" class="input-append">
+              <label for="slicer_Start_GCode">Starting Script GCode:</label>
+              <div class="controls">
+                <textarea id="slicer_Start_GCode" data-bind="value: $data['profile.start_gcode']"></textarea>
+              </div>
+            </div>
+      </div>
+
+      <div class="row" id="gcode-scripts-row">
+            <div title="GCode inserted at the end" class="input-append">
+                <label for="slicer_End_GCode">Ending Script GCode:</label>
+                <div class="controls">
+                    <textarea id="slicer_End_GCode" data-bind="value: $data['profile.end_gcode']"></textarea>
+                </div>
+            </div>
+      </div>
+
+      <div class="row" id="gcode-scripts-row">
+            <div title="GCode inserted before layer change" class="input-append">
+                <label for="slicer_before_layer_GCode">Before Layer Change GCode:</label>
+                <div class="controls">
+                    <textarea id="slicer_before_layer_GCode" data-bind="value: $data['profile.before_layer_gcode']"></textarea>
+                </div>
+            </div>
+      </div>
+      </ul>
+  </div>
+
+  <div id="help" class="tab-pane fade">
+    <div class="wrapper">
+        <h3>Please navigate to the GitHub link below to learn how to import your own slicing profiles:</h3>
+        <blockquote>
+            <a href="https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles" target="_blank" rel="noopener noreferrer">https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles</a>
+        </blockquote>
+        <h4>FAQ:</h4>
+        <h5>Downloading PrusaSlicer to OctoPrint</h5>
+        <p>PrusaSlicer will need to be downloaded manually from the OctoPrint settings menu:</p>
+        <ul>
+            <li>Open the OctoPrint Settings menu (wrench icon on the top-right corner of the page)</li>
+            <li>Select the "Slicer" plugin tab</li>
+            <li>Press the "Download PrusaSlicer" button</li>
+            <li>Wait for the download to complete</li>
+            <li>Once finished, press the "Set as default slicer" button</li>
+            <li>Finally, make sure to press the "Save" button to exit the settings menu</li>
+        </ul>
+        {#
+        <h5>How long should it take to slice?</h5>
+        <p>This depends on a couple of factors:</p>
+        #}
+    </div>
+  </div>
+</div>
+
+<div id="internal_slicer">
+    <button class="btn btn-primary btn-block" data-bind="click: $data.slice, enable: $data.slicingViewModel.enableSliceButton() && !slicing(), text: (slicing() ? 'Slicing...' : ($data.slicingViewModel.enableSliceButton() ? 'Slice it!' : 'Slicing disabled - currently printing or no model loaded.'))">
+        <i class="icon-spinner icon-spin" data-bind="visible: slicing()"></i>
+    </button>
+    {% include "modal.jinja2" %}
+</div>
