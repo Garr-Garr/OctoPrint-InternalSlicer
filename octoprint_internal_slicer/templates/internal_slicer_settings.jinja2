@@ -7,7 +7,7 @@
         <div class="control-group">
             <label class="control-label">{{ _('Download PrusaSlicer') }}</label>
             <div class="controls">
-                This will download the latest available version of PrusaSlicer (v2.7.2) and install it in a new directory on your Raspberry Pi.<br><br>
+                This will download the latest available version of PrusaSlicer (v2.6.1) and install it in a new directory on your Raspberry Pi.<br><br>
                 <button class="btn" type="button" data-bind="click: function() { $root.downloadSlicer(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Download PrusaSlicer</button>
             </div>
             <label class="control-label">{{ _('Enable Logging') }}</label>
@@ -22,11 +22,15 @@
                 This will cancel the ongoing slice<br><br>
                 <button class="btn" type="button" data-bind="click: function() { $root.cancel_slice()}">Cancel Slice</button>
             </div>
+            #}
+            {#
             <label class="control-label">{{ _('Reset Wizard') }}</label>
             <div class="controls">
                 This will reset the wizard for debugging<br><br>
                 <button class="btn" type="button" data-bind="click: function() { $root.resetWizard()}">Reset NOOOW</button>
             </div>
+            #}
+            {#
             <label class="control-label">{{ _('Diable GUI Slicer') }}</label>
             <div class="controls"> 
                 <label class="checkbox">

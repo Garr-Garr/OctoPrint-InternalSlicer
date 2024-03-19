@@ -102,7 +102,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		slicer_logging_handler.setLevel(logging.DEBUG)
 
 		self._slicer_logger.addHandler(slicer_logging_handler)
-		self._slicer_logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.CRITICAL)
+		self._slicer_logger.setLevel(logging.DEBUG if self._settings.get_boolean(["debug_logging"]) else logging.INFO)
 		self._slicer_logger.propagate = False
 
 	def on_after_startup(self):
@@ -124,64 +124,36 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			debug_logging=True,
 			disableGUI = False,
 			enableAutoBedTemp = False,
-			enableCpuLimit = False,
+			enableCpuLimit = False, 
 			cpuLimitInstalled = False,
 			cpuLimit_Value = 100,
 			wizard_version=0
 		)
 	
 	def on_settings_save(self, data):
-		old_GUI_value = self._settings.get_boolean(["disableGUI"])
-		old_debug_logging = self._settings.get_boolean(["debug_logging"])
-		old_enableAutoBedTemp = self._settings.get_boolean(["enableAutoBedTemp"])
-		old_enableCpuLimit = self._settings.get_boolean(["enableCpuLimit"])
-		old_cpuLimitInstalled = self._settings.get_boolean(["cpuLimitInstalled"])
-		
+		settings = [
+        	{"name": "disableGUI", "log_msg": "GUI"},
+        	{"name": "debug_logging", "log_msg": "Debug logging"},
+        	{"name": "enableAutoBedTemp", "log_msg": "Auto bed temp"},
+        	{"name": "enableCpuLimit", "log_msg": "CPU Limit"},
+        	{"name": "cpuLimitInstalled", "log_msg": "CPU Limit is installed"},
+    	]
+
+		old_values = {setting["name"]: self._settings.get_boolean([setting["name"]]) for setting in settings}
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
 
-		new_GUI_value = self._settings.get_boolean(["disableGUI"])
-		new_debug_logging = self._settings.get_boolean(["debug_logging"])
-		new_enableAutoBedTemp = self._settings.get_boolean(["enableAutoBedTemp"])
-		new_enableCpuLimit = self._settings.get_boolean(["enableCpuLimit"])
-		new_cpuLimitInstalled = self._settings.get_boolean(["cpuLimitInstalled"])
+		for setting in settings:
+			new_value = self._settings.get_boolean([setting["name"]])
 
-		if old_debug_logging != new_debug_logging:
-			if new_debug_logging:
-				self._logger.setLevel(logging.DEBUG)
-			else:
-				self._logger.setLevel(logging.CRITICAL)
-		
-		if old_GUI_value != new_GUI_value:
-			if new_GUI_value:
-				self._settings.set_boolean(["disableGUI"], True)
-				self._logger.info("GUI Disabled.")
-			else:
-				self._settings.set_boolean(["disableGUI"], False)
-				self._logger.info("GUI Enabled.")
+			#debuging
+			#self._logger.info(f"Old value of {setting['name']}: {old_values[setting['name']]}")
+			#self._logger.info(f"New value of {setting['name']}: {new_value}")
+			if old_values[setting['name']] != new_value:
+				if new_value:
+					self._logger.info(f"{setting['log_msg']} enabled.")
+				else:
+					self._logger.info(f"{setting['log_msg']} disabled.")
 
-		if old_enableAutoBedTemp != new_enableAutoBedTemp:
-			if new_enableAutoBedTemp:
-				self._settings.set_boolean(["enableAutoBedTemp"], True)
-				self._logger.info("Auto bed temp enabled.")
-			else:
-				self._settings.set_boolean(["enableAutoBedTemp"], False)
-				self._logger.info("Auto bed temp disabled.")
-		
-		if old_enableCpuLimit != new_enableCpuLimit:
-			if new_enableCpuLimit:
-				self._settings.set_boolean(["enableCpuLimit"], True)
-				self._logger.info("CPU Limit enabled.")
-			else:
-				self._settings.set_boolean(["enableCpuLimit"], False)
-				self._logger.info("CPU Limit disabled.")
-
-		if old_cpuLimitInstalled != new_cpuLimitInstalled:
-			if new_cpuLimitInstalled:
-				self._settings.set_boolean(["cpuLimitInstalled"], True)
-				self._logger.info("CPU Limit is installed.")
-			else:
-				self._settings.set_boolean(["cpuLimitInstalled"], False)
-				self._logger.info("CPU Limit is not installed")
 
 	##~~ SimpleApiPlugin mixin
 	def get_api_commands(self):
@@ -222,6 +194,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	#def reset_wizard(self):
 		#self._settings.set(["wizard_version"], 0)
 		#self._settings.save()
+
 
 	##~~ BlueprintPlugin mixin
 	@octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
@@ -294,6 +267,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	def is_blueprint_csrf_protected(self):
 		return True
 
+
 	##~~ EventHandlerPlugin mixin
 	def on_event(self, event, payload):
 		# check if event is slicing started
@@ -305,6 +279,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		elif event == octoprint.events.Events.SLICING_DONE or event == octoprint.events.Events.SLICING_CANCELLED or event == octoprint.events.Events.SLICING_FAILED :
 			# Clear processing slice
 			self.processingSlice = False
+
 
 	##~~ SlicerPlugin mixin
 	def is_slicer_configured(self):
@@ -513,6 +488,8 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			raise IOError("Cannot overwrite {path}".format(path=path))
 		Profile.to_slicer_ini(profile, path, display_name=display_name, description=description)
 
+
+	##~~ Custom Functions
 	def installCPULimit(self):
 		# Check if CPU Limit is installed
 		if self._settings.get(["cpuLimitInstalled"]) is True:
@@ -568,6 +545,8 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		if proc.poll() is not None and os.access(os.path.expanduser("~/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage"), os.X_OK):
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "PrusaSlicer has been installed!"))
 			self._logger.info("PrusaSlicer has been installed!")
+			self.is_slicer_configured()
+
 		else:
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "The PrusaSlicer installation has failed Maybe try downloading the offline installation?" + 
 														   									" https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/offline.zip"))
