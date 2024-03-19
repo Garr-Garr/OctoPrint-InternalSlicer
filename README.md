@@ -14,13 +14,13 @@
 
 ## Setup
 ### Online:
-Install via the bundled OctoPrint Plugin Manager, or manually using this URL:
+Install manually using this URL:
 
     https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/master.zip
 
 ### Offline (_bundled with PruasSlicer v2.6.1_): 
 
-[Click here for instructions on how to install this plugin offline](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Offline-Installation-Instructions)
+[Click here for instructions on how to install this plugin onto a printer without internet access](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Offline-Installation-Instructions)
 
 ## Importing your PrusaSlicer profile
 
