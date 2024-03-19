@@ -28,7 +28,6 @@ Install manually using this URL:
   
 ## More Photos
 
-<img src="/docs/readme_2.png" width="600">
 <img src="/docs/readme_3.png" width="600">
 <img src="/docs/readme_4.png" width="600">
 
