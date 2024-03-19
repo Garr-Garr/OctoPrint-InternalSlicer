@@ -22,10 +22,14 @@ Install manually using this URL:
 
 [Click here for instructions on how to install this plugin onto a printer without internet access](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Offline-Installation-Instructions)
 
-## Importing your PrusaSlicer profile
+## Importing your printer's PrusaSlicer profile
 
 [Click here for instructions on how to export and import your PrusaSlicer profiles](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles)
   
+## Plugin Wiki / Documentation:
+
+> https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki
+
 ## More Photos
 
 <img src="/docs/readme_3.png" width="600">
