@@ -217,6 +217,18 @@
             <li>Press the star icon next to your OctoPrint printer profile</li>
             <li>Make sure your build volume dimensions are set correctly under the "Print Bed & Build Volume" menu</li>
         </ul>
+        <h5>Why is my Raspberry Pi overheating while slicing a large part?</h5>
+        <p>
+            PrusaSlicer is fairly resource intensive when running on a Raspberry Pi, causing the Pi to briefly "overheat" during a long slice 
+            and a warning message within OctoPrint. The Raspberry Pi will quickly cool down once its finished slicing the part, but unfortunately, 
+            the warning message won't go away until restarting OctoPrint.
+        </p>
+        <p>
+            We can improve the Raspberry Pi's cooling by either installing a cooling fan, a heatsink, or <a href="https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Installing-CPU-Limit-on-a-Raspberry-Pi" target="_blank" rel="noopener noreferrer">by enabling a limit on the CPU during the slice. </a>
+        </p>
+
+
+
         <h5>How can I sumbit a bug report or feature request?</h5>
         <p>Open an "issue" on this plugin's Git-Hub Page:</p>
         <blockquote>
