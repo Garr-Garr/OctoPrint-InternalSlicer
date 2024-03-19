@@ -24,7 +24,7 @@ https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Downloading-PrusaSlic
 
 ## Offline (_bundled with PruasSlicer v2.6.1_): 
 
-[Click here for instructions on how to install this plugin onto a printer without internet access](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Offline-Installation-Instructions)
+Coming soon
 
 ## Importing your printer's PrusaSlicer profile
 
