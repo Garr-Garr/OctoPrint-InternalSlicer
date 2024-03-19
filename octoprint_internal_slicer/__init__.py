@@ -68,7 +68,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
 		# for details.
 		return dict(
-			slicer=dict(
+			internal_slicer=dict(
 				displayName="OctoPrint Internal Slicer",
 				displayVersion=self._plugin_version,
 
