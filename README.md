@@ -13,27 +13,31 @@
 - [More is coming...](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Future-Plans)
 
 ## Setup
-### Online:
+### Online Installation Instructions:
 Install manually using this URL:
 
     https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/master.zip
 
-### Offline (_bundled with PruasSlicer v2.6.1_): 
+Once installed, follow the steps in the guide below to download PrusaSlicer to your Raspberry Pi:
+
+https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Downloading-PrusaSlicer-to-OctoPrint
+
+## Offline (_bundled with PruasSlicer v2.6.1_): 
 
 [Click here for instructions on how to install this plugin onto a printer without internet access](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Offline-Installation-Instructions)
 
 ## Importing your printer's PrusaSlicer profile
 
 [Click here for instructions on how to export and import your PrusaSlicer profiles](https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/Exporting-and-Importing-PrusaSlicer-Profiles)
-  
-## Plugin Wiki / Documentation:
-
-> https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki
 
 ## More Photos
 
 <img src="/docs/readme_3.png" width="600">
 <img src="/docs/readme_4.png" width="600">
+
+## Plugin Wiki / Documentation:
+
+> https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki
 
 # Thank you to [Kenneth Jiang](https://github.com/kennethjiang/), [Foosel](https://github.com/foosel), [Eyal](https://github.com/eyal0), [Joshwills](https://github.com/joshwills) ...
 
