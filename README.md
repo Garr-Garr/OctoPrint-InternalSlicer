@@ -16,7 +16,7 @@
 ### Online:
 Install via the bundled OctoPrint Plugin Manager, or manually using this URL:
 
-    https://github.com/Garr-Garr/OctoPrint-Slicer/archive/refs/heads/master.zip
+    https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/master.zip
 
 ### Offline (_bundled with PruasSlicer v2.6.1_): 
 
