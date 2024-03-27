@@ -3,35 +3,14 @@ from __future__ import absolute_import
 
 from .vector import Vector
 
-import uuid
-import tempfile
 import os
 import time
-import struct
-import shutil
-import sys
-import math
-import copy
 import flask
-import binascii
 import re
-import collections
-import hashlib
-import json
-import imp
-import glob
-import ctypes
-import _ctypes
-import platform
 import subprocess
-import psutil
-import socket
 import threading
-import yaml
-import requests
 import logging
 import logging.handlers
-from collections import defaultdict
 from pkg_resources import parse_version
 
 import octoprint.plugin
@@ -39,7 +18,7 @@ import octoprint.util
 import octoprint.slicing
 import octoprint.settings
 
-from octoprint.util.commandline import CommandlineCaller, CommandlineError
+from octoprint.util.commandline import CommandlineError
 from octoprint.util.paths import normalize as normalize_path
 from octoprint.events import Events
 
@@ -61,12 +40,10 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		self._slicing_commands_mutex = threading.Lock()
 		self._cancelled_jobs = []
 		self._cancelled_jobs_mutex = threading.Lock()
+		# cancel button testing
 		self.p = None
 
 	def get_update_information(self):
-		# Define the configuration for your plugin to use with the Software Update
-		# Plugin here. See https://github.com/foosel/OctoPrint/wiki/Plugin:-Software-Update
-		# for details.
 		return dict(
 			internal_slicer=dict(
 				displayName="OctoPrint Internal Slicer",
@@ -85,8 +62,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 
 	##~~ AssetPlugin mixin
 	def get_assets(self):
-		# Define your plugin's asset files to automatically include in the
-		# core UI here.
 		return dict(
 			js=["js/stats.min.js", "js/octoprint_slicer.min.js", "js/slic3r.js"],
 			css=["css/internal_slicer.css"],
@@ -120,6 +95,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	def get_settings_defaults(self):
 		return dict(
 			slicer_engine="$HOME/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage",
+			offline_mode=False,
 			default_profile=None,
 			debug_logging=True,
 			disableGUI = False,
@@ -159,6 +135,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	def get_api_commands(self):
 		return dict(
 			download_prusaslicer_script=[],
+			#offline_installation=[],
 			test_reset_wizard=[],
 			cancel_slice=[],
 			installCPULimit=[]
@@ -266,7 +243,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	
 	def is_blueprint_csrf_protected(self):
 		return True
-
+	
 
 	##~~ EventHandlerPlugin mixin
 	def on_event(self, event, payload):
@@ -377,7 +354,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			if self._settings.get(["enableAutoBedTemp"]):
 				with open(profile_path, "r") as f:
 					for line in f:
-						if "first_layer_bed_temperature" in line:
+						if "first_layer_bed_temperature =" in line:
 							bed_temp = line.split("=")[1].strip()
 							if int(bed_temp) > 0:
 								self._logger.info(f"Bed temperature: {bed_temp}")
@@ -468,17 +445,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 					del self._slicing_commands[machinecode_path]
 			self._logger.info("-" * 40)
 
-	def cancel_slicing(self): # , machinecode_path
-		if self.p is not None:
-			self.p.terminate()
-		# with self._slicing_commands_mutex:
-		# 	if machinecode_path in self._slicing_commands:
-		# 		with self._cancelled_jobs_mutex:
-		# 			self._cancelled_jobs.add(machinecode_path)
-		# 		self._slicing_commands[machinecode_path].terminate()
-		# 		self.p.terminate()
-		# 		self._logger.info("Cancelled slicing of %s" % machinecode_path)
-
 	def _load_profile(self, path):
 		profile, display_name, description = Profile.from_slicer_ini(path)
 		return profile, display_name, description
@@ -507,17 +473,23 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 				# Send the output to the client
 				self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = line))
 
-			#command_pid = subprocess.Popen(["sudo", "dpkg", "-i" (os.path.join(self._basefolder, "static", "installation", "cpulimit_2.8-1.deb"))], stdout=subprocess.PIPE).communicate()[0].decode('utf-8').strip()
 		except CommandlineError as err:
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "Installation failed. You may need to log into the Pi via SSH first: https://github.com/Garr-Garr/OctoPrint-InternalSlicer/wiki/RPi-Slicing-Benchmarks"))
 		#else:
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "CPULimit installed successfully!"))
 			self._settings.set_boolean(["cpuLimitInstalled"], True)
 			self._settings.save()
-			
-	def cancel_testing(self):
-		if self.p:
+
+	def cancel_slicing(self): # , machinecode_path?
+		if self.p is not None:
 			self.p.terminate()
+		# with self._slicing_commands_mutex:
+		# 	if machinecode_path in self._slicing_commands:
+		# 		with self._cancelled_jobs_mutex:
+		# 			self._cancelled_jobs.add(machinecode_path)
+		# 		self._slicing_commands[machinecode_path].terminate()
+		# 		self.p.terminate()
+		# 		self._logger.info("Cancelled slicing of %s" % machinecode_path)
 
 	def downloadPrusaslicer(self):
 		self._logger.info("Starting PrusaSlicer v2.6.1 download")
@@ -551,17 +523,6 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "The PrusaSlicer installation has failed Maybe try downloading the offline installation?" + 
 														   									" https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/offline.zip"))
 			self._logger.info("The PrusaSlicer installation has failed")	
-
-	# CPU Limit installation 
-
-	# try:
-	# #	caller.checked_call(["sudo", "dpkg", "-i", (os.path.join(self._basefolder,"static","installation","cpulimit_2.8-1_armhf.deb"))])
-	# except CommandlineError as err:
-	# 		self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = u"Command returned {}".format(err.returncode)))
-	# 		#self._logger.info(u"Command returned {}".format(err.returncode))
-	# 		self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = u"CPULimit installation failed. Please submit a bug report!"))
-	# 		#self.log(u"", "stderr", u"Installation failed. Please submit a bug report!")
-	# 		return
 
 	def slic3rProfileCleanup(self, input, output) :
 		# Slic3r and PrusaSlicer profile cleanup

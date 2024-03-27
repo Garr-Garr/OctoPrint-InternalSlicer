@@ -8,6 +8,8 @@ $(function() {
         
         self.internal_slicer_command_response_popup = $("#internal_slicer_command_response_popup");
         self.slicerCommandResponse = ko.observable("");
+        self.offlineMode = False;
+        self.onlineMode = True;
     
         self.isDefaultSlicer = ko.observable();
         self.currentDiv = ko.observable("");
@@ -225,14 +227,6 @@ $(function() {
         self.downloadSlicer = function() {
             var url = OctoPrint.getSimpleApiUrl("internal_slicer");
             OctoPrint.issueCommand(url, "download_prusaslicer_script")
-                .done(function(response) {
-                        //console.log(response);
-            });
-        };
-
-        self.installCPULimit = function() {
-            var url = OctoPrint.getSimpleApiUrl("internal_slicer");
-            OctoPrint.issueCommand(url, "installCPULimit")
                 .done(function(response) {
                         //console.log(response);
             });

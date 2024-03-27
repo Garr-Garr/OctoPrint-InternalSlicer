@@ -56,7 +56,7 @@ class Profile(object):
           if line.startswith("# Name: "):
             display_name = line[len("# Name: "):]
           elif line.startswith("# Description: "):
-            description = line[len("# Description: "):]
+            description = line[len("# Description: "):] # maybe use "# generated " instead
         split_line = line.split("=", 1)
         if len(split_line) != 2:
           continue
