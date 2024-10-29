@@ -35,6 +35,7 @@ $(function() {
         self.uploadButton = $("#settings-internal_slicer-import-start");
         self.uploadData = null;
         self.uploadButton.on("click", function() {
+			// Trigger the submit handler which will set the latest form data
             if (self.uploadData) {
                 self.uploadData.submit();
             }
@@ -106,46 +107,67 @@ $(function() {
 
         // Uploading profiles
         self.uploadElement.fileupload({
-            dataType: "json",
-            maxNumberOfFiles: 1,
-            autoUpload: false,
-            headers: OctoPrint.getRequestHeaders(),
-            add: function(e, data) {
-                if (data.files.length == 0) {
-                    return false;
-                }
-
-                self.fileName(data.files[0].name);
-
-                var name = self.fileName().substr(0, self.fileName().lastIndexOf("."));
-                self.placeholderName(self._sanitize(name).toLowerCase());
-                self.placeholderDisplayName(name);
-                self.placeholderDescription("Imported from " + self.fileName() + " on " + formatDate(new Date().getTime() / 1000));
-
-                var form = {
-                    allowOverwrite: self.profileAllowOverwrite()
-                };
-                if (self.profileName() !== undefined) {
-                    form["name"] = self.profileName();
-                }
-                if (self.profileDisplayName() !== undefined) {
-                    form["displayName"] = self.profileDisplayName();
-                }
-                if (self.profileDescription() !== undefined) {
-                    form["description"] = self.profileDescription();
-                }
-
-                data.formData = form;
-                self.uploadData = data;
-            },
-            done: function(e, data) {
-                self.clearUpload();
-
-                $("#settings_plugin_internal_slicer_import").modal("hide");
-                self.requestData();
-                self.slicingViewModel.requestData();
-            }
-        });
+			dataType: "json",
+			maxNumberOfFiles: 1,
+			autoUpload: false,
+			headers: OctoPrint.getRequestHeaders(),
+			add: function(e, data) {
+				if (data.files.length == 0) {
+					return false;
+				}
+		
+				self.fileName(data.files[0].name);
+		
+				// Read the uploaded file to extract print_settings_id
+				var reader = new FileReader();
+				reader.onload = function(e) {
+					var content = e.target.result;
+					var printSettingsId = "";
+					
+					// Extract print_settings_id from the config file
+					var match = content.match(/print_settings_id\s*=\s*(.+)/);
+					if (match && match[1]) {
+						printSettingsId = match[1].trim();
+					}
+		
+					// If no print_settings_id found, use filename without extension
+					if (!printSettingsId) {
+						var name = self.fileName().substr(0, self.fileName().lastIndexOf("."));
+						printSettingsId = self._sanitize(name).toLowerCase();
+					}
+		
+					// Update the form fields with extracted data
+					self.profileName(printSettingsId);
+					self.profileDisplayName(printSettingsId);
+					self.placeholderName(printSettingsId);
+					self.placeholderDisplayName(printSettingsId);
+					self.placeholderDescription("Imported from " + self.fileName() + " on " + formatDate(new Date().getTime() / 1000));
+					self.profileDescription(self.placeholderDescription());
+				};
+				reader.readAsText(data.files[0]);
+		
+				self.uploadData = data;
+			},
+			submit: function(e, data) {
+				// Set the form data right before submission
+				data.formData = {
+					name: self.profileName(),
+					displayName: self.profileDisplayName(),
+					description: self.profileDescription(),
+					allowOverwrite: self.profileAllowOverwrite()
+				};
+			},
+			done: function(e, data) {
+				self.clearUpload();
+				$("#settings_plugin_internal_slicer_import").modal("hide");
+				self.requestData();
+				self.slicingViewModel.requestData();
+			}
+		});		
+        
+		self._sanitize = function(name) {
+			return name.replace(/[^a-zA-Z0-9\-_\.\(\) ]/g, "").replace(/ /g, "_");
+		};
 
         self.removeProfile = function(data) {
             if (!data.resource) {
@@ -294,27 +316,37 @@ $(function() {
         };
 
         self.requestData = function() {
-            $.ajax({
-                url: API_BASEURL + "slicing/prusa/profiles",
-                type: "GET",
-                dataType: "json",
-                success: self.fromResponse
-            });
-        };
-
-        self.fromResponse = function(data) {
-            var profiles = [];
-            _.each(_.keys(data), function(key) {
-                profiles.push({
-                    key: key,
-                    name: ko.observable(data[key].displayName),
-                    description: ko.observable(data[key].description),
-                    isdefault: ko.observable(data[key].default),
-                    resource: ko.observable(data[key].resource)
-                });
-            });
-            self.profiles.updateItems(profiles);
-        };
+			return $.ajax({
+				url: API_BASEURL + "slicing/prusa/profiles",
+				type: "GET",
+				dataType: "json",
+				success: self.fromResponse,
+				error: function(xhr, status, error) {
+					console.error("Error fetching profiles:", error);
+					// Optionally show an error message to the user
+					// new PNotify({
+					//     title: 'Error',
+					//     text: 'Could not load slicer profiles',
+					//     type: 'error'
+					// });
+				}
+			});
+		};
+		
+		self.fromResponse = function(data) {
+			var profiles = [];
+			_.each(_.keys(data), function(key) {
+				profiles.push({
+					key: key,
+					name: ko.observable(data[key].displayName),
+					description: ko.observable(data[key].description),
+					isdefault: ko.observable(data[key].default),
+					resource: ko.observable(data[key].resource)
+				});
+			});
+			self.profiles.updateItems(profiles);
+		};
+		
 
         self.onBeforeBinding = function () {
             //self.enableSlicingDialog = (self.settings.plugins.internal_slicer.disableGUI());
@@ -323,12 +355,17 @@ $(function() {
         };
 
         self.onSettingsShown = function() {
-            if ('slicing' in self.settings && 'defaultSlicer' in self.settings.slicing) {
-                self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "prusa" ? "yes" : "no");
-            } else {
-                self.isDefaultSlicer("unknown");
-            }
-        }
+			// Handle default slicer state
+			if ('slicing' in self.settings && 'defaultSlicer' in self.settings.slicing) {
+				self.isDefaultSlicer(self.settings.slicing.defaultSlicer() == "prusa" ? "yes" : "no");
+			} else {
+				self.isDefaultSlicer("unknown");
+			}
+		
+			// Refresh the profile list
+			self.requestData();
+			self.slicingViewModel.requestData();
+		};
 
         self.onSettingsHidden = function() {
             self.resetPathTest();

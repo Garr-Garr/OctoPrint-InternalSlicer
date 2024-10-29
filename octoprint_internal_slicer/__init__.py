@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from .vector import Vector
 
 import uuid
+import datetime
 import tempfile
 import os
 import time
@@ -46,9 +47,9 @@ from octoprint.events import Events
 from .profile import Profile
 
 class InternalSlicer(octoprint.plugin.SettingsPlugin,
-                   octoprint.plugin.AssetPlugin,
+				   octoprint.plugin.AssetPlugin,
 		   		   octoprint.plugin.SlicerPlugin,
-                   octoprint.plugin.TemplatePlugin,
+				   octoprint.plugin.TemplatePlugin,
 		   		   octoprint.plugin.SimpleApiPlugin,
 				   octoprint.plugin.BlueprintPlugin,
 				   octoprint.plugin.StartupPlugin,
@@ -132,12 +133,12 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	
 	def on_settings_save(self, data):
 		settings = [
-        	{"name": "disableGUI", "log_msg": "GUI"},
-        	{"name": "debug_logging", "log_msg": "Debug logging"},
-        	{"name": "enableAutoBedTemp", "log_msg": "Auto bed temp"},
-        	{"name": "enableCpuLimit", "log_msg": "CPU Limit"},
-        	{"name": "cpuLimitInstalled", "log_msg": "CPU Limit is installed"},
-    	]
+			{"name": "disableGUI", "log_msg": "GUI"},
+			{"name": "debug_logging", "log_msg": "Debug logging"},
+			{"name": "enableAutoBedTemp", "log_msg": "Auto bed temp"},
+			{"name": "enableCpuLimit", "log_msg": "CPU Limit"},
+			{"name": "cpuLimitInstalled", "log_msg": "CPU Limit is installed"},
+		]
 
 		old_values = {setting["name"]: self._settings.get_boolean([setting["name"]]) for setting in settings}
 		octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
@@ -196,74 +197,92 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		#self._settings.save()
 
 
-	##~~ BlueprintPlugin mixin
 	@octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
 	def importSlicerProfile(self):
 		import datetime
 		import tempfile
+
 		input_name = "file"
 		input_upload_name = input_name + "." + self._settings.global_get(["server", "uploads", "nameSuffix"])
 		input_upload_path = input_name + "." + self._settings.global_get(["server", "uploads", "pathSuffix"])
+
+		try:
+			# Handle file upload through the upload form
+			if input_upload_name in flask.request.values and input_upload_path in flask.request.values:
+				filename = flask.request.values[input_upload_name]
+				profile_dict, default_name, default_description = Profile.from_slicer_ini(flask.request.values[input_upload_path])
+			
+			# Handle direct file upload
+			elif input_name in flask.request.files:
+				temp_file = tempfile.NamedTemporaryFile("wb", delete=False)
+				try:
+					temp_file.close()
+					upload = flask.request.files[input_name]
+					upload.save(temp_file.name)
+					profile_dict, default_name, default_description = Profile.from_slicer_ini(temp_file.name)
+					filename = upload.filename
+				finally:
+					try:
+						os.remove(temp_file.name)
+					except:
+						pass
+			else:
+				return flask.make_response("No file included", 400)
+
+			# Get form values from request.values (combines form and query parameters)
+			profile_name = flask.request.values.get("name", "").strip()
+			profile_display_name = flask.request.values.get("displayName", "").strip()
+			profile_description = flask.request.values.get("description", "").strip()
+			profile_allow_overwrite = flask.request.values.get("allowOverwrite", "false").lower() in ("true", "yes", "1", "on")
+
+			self._logger.info("Received form data - name: %s, display_name: %s, description: %s", 
+							profile_name, profile_display_name, profile_description)
+
+			# Use form values if provided, otherwise fall back to extracted values
+			if not profile_name:
+				if "print_settings_id" in profile_dict:
+					profile_name = profile_dict["print_settings_id"]
+				else:
+					profile_name = os.path.splitext(filename)[0]
+
+			# Ensure profile name is sanitized
+			profile_name = self._sanitize(profile_name)
+
+			if not profile_display_name:
+				profile_display_name = default_name if default_name else profile_name
+
+			if not profile_description:
+				profile_description = default_description if default_description else (
+					"Imported from {filename} on {date}".format(
+						filename=filename,
+						date=octoprint.util.get_formatted_datetime(datetime.datetime.now())
+					)
+				)
+
+			# Save the profile
+			self._slicing_manager.save_profile(
+				"prusa",
+				profile_name,
+				profile_dict,
+				allow_overwrite=profile_allow_overwrite,
+				display_name=profile_display_name,
+				description=profile_description
+			)
+
+			result = dict(
+				resource=flask.url_for("api.slicingGetSlicerProfile", slicer="prusa", name=profile_name, _external=True),
+				displayName=profile_display_name,
+				description=profile_description
+			)
+			
+			r = flask.make_response(flask.jsonify(result), 201)
+			r.headers["Location"] = result["resource"]
+			return r
+
+		except Exception as e:
+			self._logger.exception("Error while importing profile")
+			return flask.make_response("Error while importing profile: %s" % str(e), 500)
 		
-		if input_upload_name in flask.request.values and input_upload_path in flask.request.values:
-			filename = flask.request.values[input_upload_name]
-			try:
-				profile_dict, imported_name, imported_description = Profile.from_slicer_ini(flask.request.values[input_upload_path])
-			except Exception as e:
-				return flask.make_response("Something went wrong while converting imported profile: {message}".format(e.message), 500)
-
-		elif input_name in flask.request.files:
-			temp_file = tempfile.NamedTemporaryFile("wb", delete=False)
-			try:
-				temp_file.close()
-				upload = flask.request.files[input_name]
-				upload.save(temp_file.name)
-				profile_dict, imported_name, imported_description = Profile.from_slicer_ini(temp_file.name)
-			except Exception as e:
-				return flask.make_response("Something went wrong while converting imported profile: {message}".format(e.message), 500)
-			finally:
-				os.remove(temp_file)
-			filename = upload.filename
-
-		else:
-			return flask.make_response("No file included", 400)
-		
-		name, _ = os.path.splitext(filename)
-
-		# default values for name, display name and description
-		profile_name = name
-		profile_display_name = imported_name if imported_name is not None else name
-		profile_description = imported_description if imported_description is not None else "Imported from {filename} on {date}".format(filename=filename, date=octoprint.util.get_formatted_datetime(datetime.datetime.now()))
-		profile_allow_overwrite = False
-
-		# overrides
-		if "name" in flask.request.values:
-			profile_name = flask.request.values["name"]
-		if "displayName" in flask.request.values:
-			profile_display_name = flask.request.values["displayName"]
-		if "description" in flask.request.values:
-			profile_description = flask.request.values["description"]
-		if "allowOverwrite" in flask.request.values:
-			from octoprint.server.api import valid_boolean_trues
-			profile_allow_overwrite = flask.request.values["allowOverwrite"] in valid_boolean_trues
-
-		# Save profile
-		self._slicing_manager.save_profile("prusa",
-										profile_name,
-										profile_dict,
-										allow_overwrite=profile_allow_overwrite,
-										display_name=profile_display_name,
-										description=profile_description)
-
-		result = dict(
-			resource=flask.url_for("api.slicingGetSlicerProfile", slicer="prusa", name=profile_name, _external=True),
-			displayName=profile_display_name,
-			description=profile_description
-		)
-		r = flask.make_response(flask.jsonify(result), 201)
-		r.headers["Location"] = result["resource"]
-		return r
-	
 	def is_blueprint_csrf_protected(self):
 		return True
 
@@ -327,7 +346,7 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 		if not machinecode_path:
 			path, _ = os.path.splitext(model_path)
 			machinecode_path = path + ".gcode"
-    
+	
 		if position and isinstance(position, dict) and "x" in position and "y" in position:
 			posX = int(position["x"])
 			posY = int(position["y"])
@@ -562,6 +581,19 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 	# 		self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = u"CPULimit installation failed. Please submit a bug report!"))
 	# 		#self.log(u"", "stderr", u"Installation failed. Please submit a bug report!")
 	# 		return
+
+	def _sanitize(self, name):
+		"""
+		Sanitizes a name for use as a profile identifier.
+		Removes any characters that aren't alphanumeric, underscore, hyphen, period, or parentheses.
+	
+		Args:
+			name (str): The name to sanitize
+		
+		Returns:
+			str: The sanitized name
+		"""
+		return re.sub(r"[^a-zA-Z0-9\-_\.\(\) ]", "", name).replace(" ", "_")
 
 	def slic3rProfileCleanup(self, input, output) :
 		# Slic3r and PrusaSlicer profile cleanup
