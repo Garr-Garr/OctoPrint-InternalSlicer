@@ -44,6 +44,12 @@
                     <input type="checkbox" data-bind="checked: settings.plugins.internal_slicer.enableAutoBedTemp"> {{ _('Enable this option if you want the plugin to automatically set the bed temperature during slicing.') }}
                 </label>
             </div>
+
+            <label class="control-label">{{ _('Reset Setup Wizard') }}</label>
+            <div class="controls">
+                This will reset the setup wizard. You'll need to refresh the page after clicking.<br><br>
+                <button class="btn" type="button" data-bind="click: function() { resetWizard(), slicerCommandResponse('Reset wizard...'), showSlicerCommandResponse() }">Reset Setup Wizard</button>
+            </div>
         </div>
     </form>
     </ul>
@@ -143,10 +149,14 @@
                     <label class="control-label">{{ _('Slicer config.ini file') }}</label>
                     <div class="controls">
                         <div class="input-prepend">
-                    <span class="btn fileinput-button">
-                        <span>{{ _('Browse...') }}</span>
-                        <input id="settings-internal_slicer-import" type="file" name="file" data-url="{{ url_for("plugin.internal_slicer.importSlicerProfile") }}">
-                    </span>
+                            <span class="btn fileinput-button">
+                                <span>{{ _('Browse...') }}</span>
+                                <input id="settings-internal_slicer-import" 
+                                       type="file" 
+                                       name="file" 
+                                       accept=".ini"
+                                       data-url="{{ url_for("plugin.internal_slicer.importSlicerProfile") }}">
+                            </span>
                             <span class="add-on" data-bind="text: fileName"></span>
                         </div>
                     </div>
@@ -188,18 +198,6 @@
             <button class="btn btn-primary" id="settings-internal_slicer-import-start">{{ _('Confirm') }}</button>
         </div>
     </div>
-
-{# Reset startup wizard - Commented out until the wizard is completed - Garrett 7/17/23 
-<form class="form-horizontal">
-    <div class="control-group">
-        <label class="control-label">{{ _('Reset Setup Wizard') }}</label>
-        <div class="controls">
-            You'll need to refresh the page after selecting this button.<br>
-            <button class="btn" type="button" data-bind="click: function() { $root.resetWizard(), $root.slicerCommandResponse(''), $root.showSlicerCommandResponse() }">Reset Setup Wizard</button>
-        </div>
-    </div>
-</form>
-#}
 
 <br>
 <br>

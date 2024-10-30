@@ -128,7 +128,8 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			enableCpuLimit = False, 
 			cpuLimitInstalled = False,
 			cpuLimit_Value = 100,
-			wizard_version=0
+			wizard_version=0,
+			installed_prusaslicer_version="2.6.1"
 		)
 	
 	def on_settings_save(self, data):
@@ -176,25 +177,60 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 			self.installCPULimit()
 
 	##~~ WizardPlugin mixin
-	#def on_wizard_finish(self):
-		#self._logger.info("Wizard finished :)")
-		#self._settings.set(["wizard_version"], 1)
+	def get_wizard_version(self):
+		return self._settings.get_int(["wizard_version"])
 
-	#def is_wizard_required(self):
-		#if self._settings.get_boolean(["setup_done"]) is False:
-			#self._logger.info("Setup wizard is required, running now (?)")
-			#self._settings.set_boolean(["setup_done"], True)
-			#self._settings.save()
-		#return True
+	def is_wizard_required(self):
+		"""
+		Determines if the setup wizard needs to be run.
+		"""
+		return self._settings.get_int(["wizard_version"]) < 1
+
+	def on_wizard_finish(self, handled):
+		"""
+		Handles wizard completion.
+		"""
+		self._settings.set_int(["wizard_version"], 1)
+		self._settings.save()
 	
-	#def get_wizard_version(self):
-		#slicer_wizard_version = self._settings.get(["wizard_version"])
-		# Returns 1 for the current wizard version, iterate wizard_version if you make changes to the wizard
-		#return slicer_wizard_version
-	
-	#def reset_wizard(self):
-		#self._settings.set(["wizard_version"], 0)
-		#self._settings.save()
+	def reset_wizard(self):
+		"""
+		Resets the wizard by setting the wizard version back to 0 and clearing related settings
+		"""
+		try:
+			# Get the main OctoPrint settings
+			octoprint_settings = self._settings.global_get(["server", "seenWizards"])
+			
+			# Reset the wizard version in both plugin settings and global OctoPrint settings
+			self._settings.set_int(["wizard_version"], 0)
+			
+			if octoprint_settings and "internal_slicer" in octoprint_settings:
+				octoprint_settings["internal_slicer"] = None
+				self._settings.global_set(["server", "seenWizards"], octoprint_settings)
+			
+			# Force save both plugin and global settings
+			self._settings.save(force=True)
+			self._settings.save(force=True, trigger_event=True)
+			
+			# Log the current values to verify
+			self._logger.info("Wizard version in plugin settings: %s", self._settings.get_int(["wizard_version"]))
+			self._logger.info("Wizard version in global settings: %s", 
+							self._settings.global_get(["server", "seenWizards", "internal_slicer"]))
+			
+			# Send success message to client
+			self._plugin_manager.send_plugin_message(self._identifier, dict(
+				slicerCommandResponse="Wizard has been reset. Please refresh the page to restart the wizard."
+			))
+			
+			# Return success response
+			return flask.jsonify(dict(
+				success=True,
+				message="Wizard has been reset"
+			))
+
+		except Exception as e:
+			self._logger.error("Error resetting wizard: %s" % str(e))
+			return flask.make_response("Error resetting wizard: %s" % str(e), 500)
 
 
 	@octoprint.plugin.BlueprintPlugin.route("/import", methods=["POST"])
@@ -540,37 +576,57 @@ class InternalSlicer(octoprint.plugin.SettingsPlugin,
 
 	def downloadPrusaslicer(self):
 		self._logger.info("Starting PrusaSlicer v2.6.1 download")
-
-		# If PrusaSlicer
+		
+		# The version we're installing
+		new_version = "2.6.1"
+		current_version = self._settings.get(["installed_prusaslicer_version"])
+		is_update = current_version is not None and current_version != new_version
+		
+		# Check if this version is already installed
 		if os.access(os.path.expanduser("~/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage"), os.X_OK):
-			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "PrusaSlicer is already installed!"))
-			self._logger.info("PrusaSlicer is already installed!")
+			message = f"PrusaSlicer v{new_version} is already installed!"
+			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse=message))
+			self._logger.info(message)
 			return
 		
 		# Get the path to the shell script
 		script_path = (self._basefolder+"/static/scripts/downloadPrusaSlicer.sh")
-
+		
 		# Create a subprocess object
 		proc = subprocess.Popen(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
+		
 		# Read all the lines of the output
 		for line in proc.stdout:
 			# Send the output to the logs
 			self._logger.info(line)
 			# Send the output to the client
-			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = line))
-
+			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse=line))
+		
 		# Wait for the process to finish
 		if proc.poll() is not None and os.access(os.path.expanduser("~/slicers/PrusaSlicer-version_2.6.1-armhf.AppImage"), os.X_OK):
-			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "PrusaSlicer has been installed!"))
-			self._logger.info("PrusaSlicer has been installed!")
+			# Update installed version in settings
+			self._settings.set(["installed_prusaslicer_version"], new_version)
+			self._settings.save()
+			
+			# Send success message
+			message = "PrusaSlicer has been installed!"
+			if is_update:
+				message = f"PrusaSlicer has been updated to version {new_version}!"
+				
+			self._plugin_manager.send_plugin_message("internal_slicer", dict(
+				slicerCommandResponse=message,
+				type="download_complete",
+				installed_version=new_version,
+				was_update=is_update
+			))
+			self._logger.info(message)
 			self.is_slicer_configured()
-
 		else:
-			self._plugin_manager.send_plugin_message("internal_slicer", dict(slicerCommandResponse = "The PrusaSlicer installation has failed Maybe try downloading the offline installation?" + 
-														   									" https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/offline.zip"))
-			self._logger.info("The PrusaSlicer installation has failed")	
-
+			self._plugin_manager.send_plugin_message("internal_slicer", dict(
+				slicerCommandResponse="The PrusaSlicer installation has failed Maybe try downloading the offline installation?" +
+									" https://github.com/Garr-Garr/OctoPrint-InternalSlicer/archive/refs/heads/offline.zip"
+			))
+			self._logger.info("The PrusaSlicer installation has failed")
 	# CPU Limit installation 
 
 	# try:

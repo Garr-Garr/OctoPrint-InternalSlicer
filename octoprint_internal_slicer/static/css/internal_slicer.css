@@ -318,6 +318,34 @@
     pointer-events: none;
 }
 
+.status-screen {
+    margin-bottom: 20px;
+    padding: 15px;
+}
+
+.status-screen h5 {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.status-item {
+    margin-bottom: 10px;
+    line-height: 20px;
+}
+
+.status-item .icon {
+    margin-right: 5px;
+}
+
+.status-item strong {
+    margin-right: 5px;
+}
+
+.status-screen .alert {
+    margin-top: 15px;
+    margin-bottom: 0;
+}
+
 .input-append input[type="number"] {
     display: inline;
     width: 100px;

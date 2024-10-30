@@ -1,28 +1,176 @@
-<p> testing </p>
+<div id="wizard_plugin_internal_slicer">
+	{% if _is_wizard_firstrun %}
+		<h3>{{ _('Internal Slicer Setup') }}</h3>
+	{% endif %}
 
-<div id="test1">
-    <form class="form-horizontal">
-        <div class="control-group">
-            <label class="control-label">{{ _('Testing Button') }}</label>
-            <div class="controls">
-                testingggggg.<br>
-                <button class="btn" type="button" onclick="click: function() { $root.showNextDiv('test1') }">Activate next div</button>
-            </div>
-        </div>
-    </form>
+	<div id="wizard_firstrun">
+		<!-- Status Screen -->
+		<div class="status-screen well">
+		    <h5>{{ _('Slicer Status Check') }}</h5>
+		    <!-- PrusaSlicer Installation Status -->
+		    <div class="status-item" data-bind="css: { 'text-success': slicerInstalled(), 'text-error': !slicerInstalled() }">
+			    <i class="icon" data-bind="css: { 'icon-ok': slicerInstalled(), 'icon-remove': !slicerInstalled() }"></i>
+			    <strong>{{ _('PrusaSlicer Installation:') }}</strong>
+			    <span data-bind="text: slicerInstalled() ? 
+			        '{{ _('PrusaSlicer v') }}' + installedVersion() + '{{ _(' is installed and executable') }}' : 
+			        '{{ _('PrusaSlicer installation not found or not executable') }}'">
+			    </span>
+			    <!-- Version Update Notice - only shows if plugin update included new slicer version -->
+			    <div class="alert alert-info" data-bind="visible: slicerInstalled() && pluginIncludesNewVersion()">
+			        <i class="icon-info-sign"></i>
+			        {{ _('This plugin update includes PrusaSlicer v2.6.1. Click "Download PrusaSlicer" to update.') }}
+			    </div>
+			</div>
+		    <!-- Profile Status -->
+		    <div class="status-item" data-bind="css: { 'text-success': hasProfiles(), 'text-error': !hasProfiles() }">
+		        <i class="icon" data-bind="css: { 'icon-ok': hasProfiles(), 'icon-remove': !hasProfiles() }"></i>
+		        <strong>{{ _('Slicing Profiles:') }}</strong>
+		        <span data-bind="text: hasProfiles() ? 
+		            '{{ _('Valid slicing profiles found') }}' : 
+		            '{{ _('No slicing profiles available') }}'">
+		        </span>
+		    </div>
+		    <!-- Skip Wizard Notice -->
+		    <div class="alert alert-info" data-bind="visible: slicerInstalled() && hasProfiles()">
+		        <i class="icon-info-sign"></i>
+		        {{ _('PrusaSlicer appears to be properly configured with valid profiles. You can safely skip the setup wizard if you don\'t need to make any changes.') }}
+		    </div>
+		</div>
 
-{{ '<script>showNextDiv("test2");</script>'|safe }}
-</div>
+		<!-- Step 1: Download PrusaSlicer -->
+		<div data-bind="visible: step() === 1">
+		    <h4>{{ _('Step 1: Download PrusaSlicer') }}</h4>
 
-<div id="test2" style="display: none;">
-    <h2>Slicer Plugin Setup</h2>
-    <p>Welcome!</p>
-    <p></p>
-    <p></p>
-    <p></p>
-    <p></p>
-</div>
+		    <p>{{ _('To proceed with PrusaSlicer installation:') }}</p>
 
-<div id="test3" style="display: none;">
+		    <ol>
+		        <li>{{ _('Click the "Download PrusaSlicer" button below') }}</li>
+		        <li>{{ _('Wait for the download to complete (this may take a few minutes)') }}</li>
+		        <li>{{ _('The download progress will be shown in a popup window') }}</li>
+		    </ol>
 
+		    <div class="control-group">
+		        <div class="controls">
+		            <button class="btn" type="button" data-bind="click: function() { downloadSlicer(), slicerCommandResponse(''), showSlicerCommandResponse() }">Download PrusaSlicer</button>
+		        </div>
+		    </div>
+		</div>
+
+		<!-- Step 2: Export Configuration -->
+		<div data-bind="visible: step() === 2">
+			<h4>{{ _('Step 2: Export PrusaSlicer Configuration') }}</h4>
+			<p>{{ _('Now, let\'s export a configuration file from PrusaSlicer:') }}</p>
+			
+			<ol>
+				<li>{{ _('Open PrusaSlicer on your computer') }}</li>
+				<li>{{ _('Go to File → Export → Export Config...') }}</li>
+				<li>{{ _('Save the configuration file with a meaningful name') }}</li>
+				<li>{{ _('Remember where you saved the file - you\'ll need it in the next step') }}</li>
+			</ol>
+
+			<div class="alert">
+				<strong>{{ _('Note:') }}</strong> 
+				{{ _('If you don\'t have PrusaSlicer installed on your computer yet, you can') }}
+				<a href="https://www.prusa3d.com/prusaslicer/" target="_blank">{{ _('download it here') }}</a>.
+			</div>
+		</div>
+
+		<!-- Step 3: Import Profile -->
+		<div data-bind="visible: step() === 3">
+			<h4>{{ _('Step 3: Import Configuration') }}</h4>
+			<p>{{ _('Finally, let\'s import your configuration file:') }}</p>
+		
+			<div class="control-group">
+				<div class="controls">
+					<button class="btn" type="button" data-bind="click: function() { $root.showImportProfileDialog() }">{{ _('Import Profile...') }}</button>
+				</div>
+			</div>
+		
+			<div class="alert alert-info">
+				<strong>{{ _('Note:') }}</strong>
+				{{ _('After importing your profile, click "Finish" to complete the setup.') }}
+			</div>
+		</div>
+		
+		<!-- Include the import dialog modal from settings -->
+		<div id="wizard_slicer_import" class="modal hide fade">
+			<div class="modal-header">
+				<a href="#" class="close" data-dismiss="modal" aria-hidden="true">&times;</a>
+				<h3>{{ _('Import Existing Slicer Profile') }}</h3>
+			</div>
+		
+			<div class="modal-body">
+				<form class="form-horizontal">
+					<div class="control-group">
+						<label class="control-label">{{ _('Slicer config.ini file') }}</label>
+						<div class="controls">
+							<div class="input-prepend">
+								<span class="btn fileinput-button">
+									<span>{{ _('Browse...') }}</span>
+									<input id="wizard-slicer-import" 
+										   type="file" 
+										   name="file" 
+										   accept=".ini"
+										   data-url="{{ url_for("plugin.internal_slicer.importSlicerProfile") }}">
+								</span>
+								<span class="add-on" data-bind="text: fileName"></span>
+							</div>
+						</div>
+					</div>
+		
+					<div class="control-group">
+						<label class="control-label">{{ _('Identifier') }}</label>
+						<div class="controls">
+							<input type="text" class="input-block-level" data-bind="value: profileName, attr: {placeholder: placeholderName}">
+						</div>
+					</div>
+		
+					<div class="control-group">
+						<label class="control-label">{{ _('Name') }}</label>
+						<div class="controls">
+							<input type="text" class="input-block-level" data-bind="value: profileDisplayName, attr: {placeholder: placeholderDisplayName}">
+						</div>
+					</div>
+		
+					<div class="control-group">
+						<label class="control-label">{{ _('Description') }}</label>
+						<div class="controls">
+							<input type="text" class="input-block-level" data-bind="value: profileDescription, attr: {placeholder: placeholderDescription}">
+						</div>
+					</div>
+		
+					<div class="control-group">
+						<div class="controls">
+							<label class="checkbox">
+								<input type="checkbox" data-bind="checked: profileAllowOverwrite"> {{ _('Overwrite existing file') }}
+							</label>
+						</div>
+					</div>
+				</form>
+			</div>
+			<div class="modal-footer">
+    			<button class="btn" data-dismiss="modal" aria-hidden="true">{{ _('Abort') }}</button>
+    			<button class="btn btn-primary" id="wizard-slicer-import-start">{{ _('Confirm') }}</button>
+			</div>
+		</div>
+
+		<!-- Navigation buttons -->
+		<div class="wizard-buttons" data-bind="visible: !wizardComplete()">
+			<button class="btn" data-bind="click: skipWizard">{{ _('Skip Setup') }}</button>
+			<button class="btn" data-bind="click: prevStep, enable: step() > 1">{{ _('Previous') }}</button>
+			<button class="btn btn-primary" data-bind="click: nextStep, enable: step() < 3">{{ _('Next') }}</button>
+			<button class="btn btn-primary" data-bind="click: finishWizard, visible: step() === 3">{{ _('Finish') }}</button>
+		</div>
+	</div>
+
+	<!-- Command response popup - using same structure as settings page -->
+	<div id="internal_slicer_command_response_popup" class="modal hide fade">
+		<center>Command Response:</center>
+		<br>
+		<center><textarea id="slicerCommandResponseText" data-bind="text: slicerCommandResponse" style="width:90%;height:250px;"></textarea></center>
+		<br>
+		<div align="right">
+			<button class="btn btn-primary" data-bind="click: function() { showSlicerCommandResponse('hide') }">Close</button>
+		</div>
+	</div>
 </div>

@@ -12,6 +12,12 @@ $(function() {
         self.isDefaultSlicer = ko.observable();
         self.currentDiv = ko.observable("");
 
+		self.step = ko.observable(1);
+		self.wizardComplete = ko.observable(false);
+        self.slicerInstalled = ko.observable(false);
+        self.hasProfiles = ko.observable(false);
+        self.installedVersion = ko.observable("");
+
         self.pathBroken = ko.observable();
         self.pathOk = ko.observable(false);
         self.pathText = ko.observable();
@@ -41,21 +47,95 @@ $(function() {
             }
         });
         // wizard testing
-        // self.showNextDiv = function (data) {
-        //     var div1 = document.getElementById("test1");
-        //     var div2 = document.getElementById("test2");
-        //     var div3 = document.getElementById("test3");
-          
-        //     if (data === "test1") {
-        //       div1.style.display = "none";
-        //       div2.style.display = "block";
-        //     } else if (data === "test2") {
-        //       div2.style.display = "none";
-        //       div3.style.display = "block";
-        //     } else if (data === "test3") {
-        //       div3.style.display = "none";
-        //       div1.style.display = "block";
-        //     }};
+        self.nextStep = function() {
+			if (self.step() < 3) {
+				self.step(self.step() + 1);
+			}
+		};
+		
+		self.prevStep = function() {
+			if (self.step() > 1) {
+				self.step(self.step() - 1);
+			}
+		};
+
+		self.skipWizard = function() {
+			showConfirmationDialog({
+				title: gettext("Skip Setup Wizard"),
+				message: gettext("Are you sure you want to skip the setup wizard? You can always configure the slicer later through OctoPrint's settings."),
+				proceed: gettext("Skip"),
+				onproceed: function() {
+					self.settingsViewModel.saveData({
+						plugins: {
+							internal_slicer: {
+								wizard_version: 1
+							}
+						}
+					});
+					self.wizardComplete(true);
+				}
+			});
+		};
+		
+		self.finishWizard = function() {
+			self.settingsViewModel.saveData({
+				plugins: {
+					internal_slicer: {
+						wizard_version: 1
+					}
+				}
+			});
+			self.wizardComplete(true);
+		};
+
+        self.resetWizard = function() {
+            var url = OctoPrint.getSimpleApiUrl("internal_slicer");
+            OctoPrint.issueCommand(url, "test_reset_wizard")
+                .done(function(response) {
+                    new PNotify({
+                        title: "Wizard Reset",
+                        text: "Setup wizard has been reset. Please refresh the page.",
+                        type: "success"
+                    });
+                    self.slicerCommandResponse("Wizard has been reset. Please refresh the page to start the wizard again.");
+                })
+                .fail(function(xhr, status, error) {
+                    new PNotify({
+                        title: "Error",
+                        text: "Failed to reset wizard: " + error,
+                        type: "error"
+                    });
+                    self.slicerCommandResponse("Failed to reset wizard: " + error);
+                });
+        };
+
+        self.pluginIncludesNewVersion = ko.computed(function() {
+            return self.slicerInstalled() && 
+                   self.installedVersion() !== "2.6.1"; // Hardcoded version for this plugin release
+        });
+
+        // Check if slicer is installed and executable
+        self.checkSlicerInstallation = function() {
+            var enginePath = self.settings.plugins.internal_slicer.slicer_engine();
+            if (enginePath) {
+                OctoPrint.util.testExecutable(enginePath)
+                    .done(function(response) {
+                        self.slicerInstalled(response.result);
+                    })
+                    .fail(function() {
+                        self.slicerInstalled(false);
+                    });
+            } else {
+                self.slicerInstalled(false);
+            }
+        };
+
+        // Check if any profiles exist
+        self.checkProfiles = function() {
+            // Use the existing profiles.items observable array instead of making a new API call
+            var hasExistingProfiles = self.profiles.items().length > 0;
+            self.hasProfiles(hasExistingProfiles);
+        };
         
         // Settings menu profile list
         self.profiles = new ItemListHelper(
@@ -105,69 +185,99 @@ $(function() {
             self.uploadData = null;
         };
 
-        // Uploading profiles
-        self.uploadElement.fileupload({
-			dataType: "json",
-			maxNumberOfFiles: 1,
-			autoUpload: false,
-			headers: OctoPrint.getRequestHeaders(),
-			add: function(e, data) {
-				if (data.files.length == 0) {
-					return false;
-				}
-		
-				self.fileName(data.files[0].name);
-		
-				// Read the uploaded file to extract print_settings_id
-				var reader = new FileReader();
-				reader.onload = function(e) {
-					var content = e.target.result;
-					var printSettingsId = "";
-					
-					// Extract print_settings_id from the config file
-					var match = content.match(/print_settings_id\s*=\s*(.+)/);
-					if (match && match[1]) {
-						printSettingsId = match[1].trim();
-					}
-		
-					// If no print_settings_id found, use filename without extension
-					if (!printSettingsId) {
-						var name = self.fileName().substr(0, self.fileName().lastIndexOf("."));
-						printSettingsId = self._sanitize(name).toLowerCase();
-					}
-		
-					// Update the form fields with extracted data
-					self.profileName(printSettingsId);
-					self.profileDisplayName(printSettingsId);
-					self.placeholderName(printSettingsId);
-					self.placeholderDisplayName(printSettingsId);
-					self.placeholderDescription("Imported from " + self.fileName() + " on " + formatDate(new Date().getTime() / 1000));
-					self.profileDescription(self.placeholderDescription());
-				};
-				reader.readAsText(data.files[0]);
-		
-				self.uploadData = data;
-			},
-			submit: function(e, data) {
-				// Set the form data right before submission
-				data.formData = {
-					name: self.profileName(),
-					displayName: self.profileDisplayName(),
-					description: self.profileDescription(),
-					allowOverwrite: self.profileAllowOverwrite()
-				};
-			},
-			done: function(e, data) {
-				self.clearUpload();
-				$("#settings_plugin_internal_slicer_import").modal("hide");
-				self.requestData();
-				self.slicingViewModel.requestData();
-			}
-		});		
+        // Initialize file upload on both settings and wizard inputs
+        self.initFileUpload = function() {
+            $("#settings-internal_slicer-import, #wizard-slicer-import").fileupload({
+                dataType: "json",
+                maxNumberOfFiles: 1,
+                autoUpload: false,
+                headers: OctoPrint.getRequestHeaders(),
+                add: function(e, data) {
+                    if (data.files.length == 0) {
+                        return false;
+                    }
+                    
+                    self.fileName(data.files[0].name);
+                    
+                    // Read the file to extract settings
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var content = e.target.result;
+                        var printSettingsId = "";
         
-		self._sanitize = function(name) {
-			return name.replace(/[^a-zA-Z0-9\-_\.\(\) ]/g, "").replace(/ /g, "_");
-		};
+                        // Extract print_settings_id from the config file
+                        var match = content.match(/print_settings_id\s*=\s*(.+)/);
+                        if (match && match[1]) {
+                            printSettingsId = match[1].trim();
+                        }
+                    
+                        // If no print_settings_id found, use filename without extension
+                        if (!printSettingsId) {
+                            var name = self.fileName().substr(0, self.fileName().lastIndexOf("."));
+                            printSettingsId = self._sanitize(name).toLowerCase();
+                        }
+                    
+                        // Update the form fields with extracted data
+                        self.profileName(printSettingsId);
+                        self.profileDisplayName(printSettingsId);
+                        self.placeholderName(printSettingsId);
+                        self.placeholderDisplayName(printSettingsId);
+                        self.placeholderDescription("Imported from " + self.fileName() + " on " + formatDate(new Date().getTime() / 1000));
+                        self.profileDescription(self.placeholderDescription());
+                    };
+                    reader.readAsText(data.files[0]);
+                    
+                    self.uploadData = data;
+                },
+                submit: function(e, data) {
+                    data.formData = {
+                        name: self.profileName(),
+                        displayName: self.profileDisplayName(),
+                        description: self.profileDescription(),
+                        allowOverwrite: self.profileAllowOverwrite()
+                    };
+                },
+                done: function(e, data) {
+                    self.clearUpload();
+                    $("#settings_plugin_internal_slicer_import, #wizard_slicer_import").modal("hide");
+                    self.requestData();
+                    self.slicingViewModel.requestData();
+                    if (self.step && self.step() === 3) {
+                        new PNotify({
+                            title: "Profile Imported",
+                            text: "Profile was successfully imported. You can now click 'Finish' to complete the setup.",
+                            type: "success"
+                        });
+                    }
+                }
+            });
+        };
+
+        // Initialize upload handlers after binding
+        self.onAfterBinding = function() {
+            self.initFileUpload();
+            
+            // Request profile data first
+            self.requestData();
+        
+            // Only run checks if we're in the wizard
+            if ($("#wizard_plugin_internal_slicer").length) {
+                self.checkSlicerInstallation();
+                // Initialize version information from settings
+                self.installedVersion(self.settings.plugins.internal_slicer.installed_prusaslicer_version());
+                // Check profiles after a small delay to ensure data is loaded
+                setTimeout(function() {
+                    self.checkProfiles();
+                }, 500);
+            }
+        };
+        
+        // Make sure both Confirm buttons trigger submit
+        $("button[id$='slicer-import-start']").click(function() {
+            if (self.uploadData) {
+                self.uploadData.submit();
+            }
+        });
 
         self.removeProfile = function(data) {
             if (!data.resource) {
@@ -215,41 +325,72 @@ $(function() {
             });
         };
         
-        self.showSlicerCommandResponse = function(input){
-			self.internal_slicer_command_response_popup.modal({keyboard: false, backdrop: "static", show: true});
-			if (input === "hide"){
-				self.internal_slicer_command_response_popup.modal("hide");
-			}
-		};
-
-        self.onDataUpdaterPluginMessage = function(plugin, data) {
-			if (plugin != "internal_slicer") {
-				return;
-			}
-            if (data.slicerCommandResponse !== undefined ){
-                //console.log(data.slicerCommandResponse);
-                
-                self.slicerCommandResponse(self.slicerCommandResponse() + data.slicerCommandResponse.toString());
-
-                //get div and scroll to bottom
-                self.slicerCommandResponseText = $("#slicerCommandResponseText");
-                self.slicerCommandResponseText.scrollTop(self.slicerCommandResponseText[0].scrollHeight);
+        self.showSlicerCommandResponse = function(input) {
+            if (input === "hide") {
+                self.internal_slicer_command_response_popup.modal("hide");
+            } else {
+                self.internal_slicer_command_response_popup.modal({
+                    keyboard: false,
+                    backdrop: "static",
+                    show: true
+                });
+                self.slicerCommandResponse(""); // Clear previous content
+                self.internal_slicer_command_response_popup.modal("show");
+                // Initialize scrolling after modal is shown
+                // var textarea = document.getElementById("slicerCommandResponseText");
+                // if (textarea) {
+                //     setTimeout(function() {
+                //         textarea.scrollTop = textarea.scrollHeight;
+                //     }, 100);
+                // }
             }
         };
 
-        // if(data.type == "popup") {
-        //     new PNotify({
-        //         title: 'Internal Slicer',
-        //         text: data.msg,
-        //         });
-        // }
+        self.onDataUpdaterPluginMessage = function(plugin, data) {
+            if (plugin != "internal_slicer") {
+                return;
+            }
+            if (data.type === "download_complete") {
+                self.installedVersion(data.installed_version);
+                // Refresh status checks
+                self.checkSlicerInstallation();
+                
+                // Show appropriate notification
+                if (data.was_update) {
+                    new PNotify({
+                        title: "PrusaSlicer Updated",
+                        text: "Successfully updated to version " + data.installed_version,
+                        type: "success"
+                    });
+                } else {
+                    new PNotify({
+                        title: "PrusaSlicer Installed",
+                        text: "Successfully installed version " + data.installed_version,
+                        type: "success"
+                    });
+                }
+            } else if (data.slicerCommandResponse !== undefined) {
+                // Update the text
+                self.slicerCommandResponse(self.slicerCommandResponse() + data.slicerCommandResponse.toString());
+                    
+                // Simple auto-scroll
+                var textarea = document.getElementById("slicerCommandResponseText");
+                if (textarea) {
+                    textarea.scrollTop = textarea.scrollHeight;
+                }
+            }
+        };
         
         self.downloadSlicer = function() {
             var url = OctoPrint.getSimpleApiUrl("internal_slicer");
             OctoPrint.issueCommand(url, "download_prusaslicer_script")
                 .done(function(response) {
-                        //console.log(response);
-            });
+                    // Wait a bit for the installation to complete
+                    // might not be long enough
+                    setTimeout(function() {
+                        self.checkSlicerInstallation();
+                    }, 2000);
+                });
         };
 
         self.installCPULimit = function() {
@@ -286,7 +427,13 @@ $(function() {
 
         self.showImportProfileDialog = function() {
             self.clearUpload();
-            $("#settings_plugin_internal_slicer_import").modal("show");
+            
+            // Determine which modal to show based on context
+            var modalElement = $("#wizard_plugin_internal_slicer").length ? 
+                $("#wizard_slicer_import") : 
+                $("#settings_plugin_internal_slicer_import");
+            
+            modalElement.modal("show");
         };
 
         self.setAsDefaultSlicer = function() {
@@ -333,19 +480,23 @@ $(function() {
 			});
 		};
 		
-		self.fromResponse = function(data) {
-			var profiles = [];
-			_.each(_.keys(data), function(key) {
-				profiles.push({
-					key: key,
-					name: ko.observable(data[key].displayName),
-					description: ko.observable(data[key].description),
-					isdefault: ko.observable(data[key].default),
-					resource: ko.observable(data[key].resource)
-				});
-			});
-			self.profiles.updateItems(profiles);
-		};
+		// Add profile check after importing new profile
+        self.fromResponse = function(data) {
+            var profiles = [];
+            _.each(_.keys(data), function(key) {
+                profiles.push({
+                    key: key,
+                    name: ko.observable(data[key].displayName),
+                    description: ko.observable(data[key].description),
+                    isdefault: ko.observable(data[key].default),
+                    resource: ko.observable(data[key].resource)
+                });
+            });
+            self.profiles.updateItems(profiles);
+            
+            // Update profile status after loading profiles
+            self.checkProfiles();
+        };
 		
 
         self.onBeforeBinding = function () {
@@ -381,13 +532,9 @@ $(function() {
 
     // view model class, parameters for constructor, container to bind to
     OCTOPRINT_VIEWMODELS.push([
-        Slic3rViewModel,
-    
-        // e.g. loginStateViewModel, settingsViewModel, ...
-        [ "loginStateViewModel", "settingsViewModel", "slicingViewModel"],
-    
-        // e.g. #settings_plugin_internal_slicer, #tab_plugin_internal_slicer, ... "#internal_slicer_command_response_popup"
-        [ "#settings_plugin_internal_slicer_dialog"]
-    ]);
+		Slic3rViewModel,
+		["loginStateViewModel", "settingsViewModel", "slicingViewModel"],
+		["#settings_plugin_internal_slicer_dialog", "#wizard_plugin_internal_slicer"]
+	]);
 
 });
